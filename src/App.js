@@ -19,7 +19,6 @@ function App() {
   const [chapterAnalyses, setChapterAnalyses] = useState([]);
   const [chapterAnalysisStatus, setChapterAnalysisStatus] = useState({});
   const [summary, setSummary] = useState('');
-  const [worthWatching, setWorthWatching] = useState('');
   const [loading, setLoading] = useState(false);
   const [enhancingTranscript, setEnhancingTranscript] = useState(false);
   const [generatingAnalyses, setGeneratingAnalyses] = useState(false);
@@ -29,10 +28,49 @@ function App() {
   const [activeChapter, setActiveChapter] = useState(0);
   const [dataFetched, setDataFetched] = useState(false);
   const [lastAnalyzedChapter, setLastAnalyzedChapter] = useState(-1);
+  const [transcriptFromExtension, setTranscriptFromExtension] = useState(null);
 
-// const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const backendUrl = 'http://localhost:5000';
+  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const BATCH_SIZE = 3;
+
+  // Check for transcript data from Chrome extension on component mount
+  useEffect(() => {
+    // Check if we have transcript data from the Chrome extension
+    const urlParams = new URLSearchParams(window.location.search);
+    const transcriptKey = urlParams.get('transcriptKey');
+    
+    if (transcriptKey) {
+      try {
+        console.log('Found transcript key:', transcriptKey);
+        const storedTranscript = localStorage.getItem(transcriptKey);
+        if (storedTranscript) {
+          console.log('Successfully retrieved transcript from localStorage');
+          const parsedTranscript = JSON.parse(storedTranscript);
+          setTranscriptFromExtension(parsedTranscript);
+          
+          // Set the video URL if provided
+          const videoUrl = urlParams.get('videoUrl');
+          if (videoUrl) {
+            console.log('Found video URL:', videoUrl);
+            setVideoUrl(videoUrl);
+            
+            // Call fetchTranscript directly after a short delay to ensure states are updated
+            setTimeout(() => {
+              console.log('Auto-fetching transcript with extension data');
+              fetchTranscript(videoUrl, parsedTranscript);
+            }, 1000);
+          }
+          
+          // Clean up localStorage after retrieving the data
+          localStorage.removeItem(transcriptKey);
+        } else {
+          console.error('Transcript data not found in localStorage with key:', transcriptKey);
+        }
+      } catch (error) {
+        console.error('Error retrieving transcript from localStorage:', error);
+      }
+    }
+  }, []);
 
   // Function to enhance specific chapters
   const enhanceChapters = async (chaptersToEnhance) => {
@@ -197,27 +235,60 @@ const backendUrl = 'http://localhost:5000';
     processInitialChapters();
   }, [rawChapterizedTranscript]);
 
-  // Handle chapter click - only for view changes
-// Handle chapter click with transcript enhancement
-const handleChapterClick = async (index) => {
-  setActiveChapter(index);
-  
-  // If this chapter hasn't been enhanced yet and isn't currently being enhanced
-  if (
-    index >= 0 && 
-    index < rawChapterizedTranscript.length && 
-    chapterEnhancementStatus[index] !== 'completed' && 
-    chapterEnhancementStatus[index] !== 'enhancing'
-  ) {
-    await enhanceChapters([{ 
-      chapter: rawChapterizedTranscript[index], 
-      index 
-    }]);
-  }
-};
+  // Handle chapter click with transcript enhancement
+  const handleChapterClick = async (index) => {
+    setActiveChapter(index);
+    
+    // If this chapter hasn't been enhanced yet and isn't currently being enhanced
+    if (
+      index >= 0 && 
+      index < rawChapterizedTranscript.length && 
+      chapterEnhancementStatus[index] !== 'completed' && 
+      chapterEnhancementStatus[index] !== 'enhancing'
+    ) {
+      await enhanceChapters([{ 
+        chapter: rawChapterizedTranscript[index], 
+        index 
+      }]);
+    }
+  };
 
-  const fetchTranscript = async () => {
-    if (!videoUrl.trim()) {
+  // Helper function for organizing transcript by chapters (for extension support)
+  function organizeTranscriptByChapters(transcriptData, chapters) {
+    const segments = [];
+    
+    for (let i = 0; i < chapters.length; i++) {
+      const currentChapter = chapters[i];
+      const nextChapter = chapters[i + 1];
+      
+      const startTime = currentChapter.time;
+      const endTime = nextChapter ? nextChapter.time : Infinity;
+      
+      const chapterTranscriptData = transcriptData.filter(item => {
+        return item.offset >= startTime && item.offset < endTime;
+      });
+      
+      const chapterContent = chapterTranscriptData
+        .map(item => item.text)
+        .join(' ')
+        .replace(/\s+/g, ' ');
+      
+      segments.push({
+        title: currentChapter.title,
+        time: currentChapter.timeFormatted,
+        content: chapterContent || 'No transcript available for this chapter'
+      });
+    }
+    
+    return segments;
+  }
+
+  // Modified fetchTranscript to support direct params (for extension data)
+  const fetchTranscript = async (urlOverride, transcriptOverride) => {
+    const urlToUse = urlOverride || videoUrl;
+    const transcriptToUse = transcriptOverride || transcriptFromExtension;
+    
+    if (!urlToUse.trim()) {
       setError('Please enter a YouTube video URL');
       return;
     }
@@ -234,32 +305,72 @@ const handleChapterClick = async (index) => {
       setChapterAnalyses([]);
       setChapterAnalysisStatus({});
       setSummary('');
-      setWorthWatching('');
       setActiveTab(null);
       setActiveChapter(0);
       setEnhancingTranscript(false);
       setGeneratingAnalyses(false);
       setLastAnalyzedChapter(-1);
       
-      const response = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(videoUrl)}`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch video data');
+      // Only fetch from API if we don't have transcript from extension
+      if (transcriptToUse) {
+        console.log('Using transcript data from Chrome extension');
+        
+        // Still need to fetch video details and chapters from the API
+        const detailsResponse = await fetch(`${backendUrl}/api/video-details?url=${encodeURIComponent(urlToUse)}`);
+        
+        if (!detailsResponse.ok) {
+          const data = await detailsResponse.json();
+          throw new Error(data.message || 'Failed to fetch video details');
+        }
+        
+        const detailsData = await detailsResponse.json();
+        setVideoDetails(detailsData.videoDetails);
+        
+        // Process chapters and transcript
+        const chapters = detailsData.chapters;
+        const plainText = transcriptToUse.map(item => item.text).join(' ');
+        
+        // Organize transcript by chapters
+        const organizedTranscript = organizeTranscriptByChapters(transcriptToUse, chapters);
+        
+        setTranscript(plainText);
+        setRawChapterizedTranscript(organizedTranscript);
+        setEnhancedChapterizedTranscript(organizedTranscript.map(() => null));
+        
+        const initialStatus = {};
+        organizedTranscript.forEach((_, index) => {
+          initialStatus[index] = 'pending';
+        });
+        setChapterEnhancementStatus(initialStatus);
+        
+        setDataFetched(true);
+        setActiveTab('transcript');
+        
+      } else {
+        // Use the original API fetch logic
+        const response = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(urlToUse)}`);
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to fetch video data');
+        }
+        
+        const data = await response.json();
+        
+        setVideoDetails(data.videoDetails);
+        setTranscript(data.transcript);
+        setRawChapterizedTranscript(data.organizedTranscript);
+        setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
+        
+        const initialStatus = {};
+        data.organizedTranscript.forEach((_, index) => {
+          initialStatus[index] = 'pending';
+        });
+        setChapterEnhancementStatus(initialStatus);
+        
+        setDataFetched(true);
+        setActiveTab('transcript');
       }
-      
-      setVideoDetails(data.videoDetails);
-      setTranscript(data.transcript);
-      setRawChapterizedTranscript(data.organizedTranscript);
-      setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
-      
-      const initialStatus = {};
-      data.organizedTranscript.forEach((_, index) => {
-        initialStatus[index] = 'pending';
-      });
-      setChapterEnhancementStatus(initialStatus);
-      
-      setDataFetched(true);
       
     } catch (err) {
       setError(err.message || 'An error occurred while fetching the video data');
@@ -267,40 +378,7 @@ const handleChapterClick = async (index) => {
       setDataFetched(false);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const analyzeWorthWatching = async () => {
-    if (!transcript) {
-      setError('Please fetch a transcript first');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch(`${backendUrl}/api/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ transcript }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to analyze video');
-      }
-      
-      setWorthWatching(data.analysis);
-      setActiveTab('analysis');
-      
-    } catch (err) {
-      setError(err.message || 'An error occurred while analyzing the video');
-    } finally {
-      setLoading(false);
+      setTranscriptFromExtension(null); // Clear after using
     }
   };
 
@@ -312,7 +390,7 @@ const handleChapterClick = async (index) => {
         <SearchBar 
           videoUrl={videoUrl} 
           setVideoUrl={setVideoUrl} 
-          onSearch={fetchTranscript} 
+          onSearch={() => fetchTranscript()}
         />
         
         {error && (
