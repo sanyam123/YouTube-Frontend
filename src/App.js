@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import LoadingSpinner from './components/LoadingSpinner';
 import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
+import axios from 'axios'; // Make sure axios is installed: npm install axios
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -25,14 +26,65 @@ function App() {
   const [generatingAnalyses, setGeneratingAnalyses] = useState(false);
   const [processingBatch, setProcessingBatch] = useState(false);
   const [error, setError] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState(null);
   const [activeTab, setActiveTab] = useState(null);
   const [activeChapter, setActiveChapter] = useState(0);
   const [dataFetched, setDataFetched] = useState(false);
   const [lastAnalyzedChapter, setLastAnalyzedChapter] = useState(-1);
 
-// const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const backendUrl = 'https://youtube-backend-qw29.onrender.com';
+  const backendUrl = process.env.REACT_APP_API_URL;
+  console.log('Using backend URL:', backendUrl);
+  
   const BATCH_SIZE = 3;
+
+  // Test backend connection on component mount
+  useEffect(() => {
+    testBackendConnection();
+  }, []);
+
+  // Function to test backend connection
+  const testBackendConnection = async () => {
+    try {
+      setConnectionStatus('Testing connection to backend...');
+      
+      // Test root endpoint
+      const rootResponse = await fetch(`${backendUrl}`, { 
+        method: 'GET',
+      });
+      console.log('Root endpoint status:', rootResponse.status);
+      
+      if (!rootResponse.ok) {
+        const errorText = await rootResponse.text();
+        console.error('Root endpoint error:', errorText);
+        setConnectionStatus(`Connection error: ${rootResponse.status} - ${errorText}`);
+        return false;
+      }
+      
+      // Test CORS-specific endpoint
+      const corsResponse = await fetch(`${backendUrl}/api/cors-test`, { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      console.log('CORS test status:', corsResponse.status);
+      
+      if (!corsResponse.ok) {
+        const errorText = await corsResponse.text();
+        console.error('CORS test error:', errorText);
+        setConnectionStatus(`CORS test failed: ${corsResponse.status} - ${errorText}`);
+        return false;
+      }
+      
+      const corsData = await corsResponse.json();
+      console.log('CORS test response:', corsData);
+      
+      setConnectionStatus('Connection to backend successful');
+      return true;
+    } catch (error) {
+      console.error('Backend connection error:', error);
+      setConnectionStatus(`Failed to connect to backend: ${error.message}`);
+      return false;
+    }
+  };
 
   // Function to enhance specific chapters
   const enhanceChapters = async (chaptersToEnhance) => {
@@ -43,24 +95,28 @@ const backendUrl = 'https://youtube-backend-qw29.onrender.com';
       });
       setChapterEnhancementStatus(updatedStatus);
       
-      const response = await fetch(`${backendUrl}/api/enhance-chapters`, {
-        method: 'POST',
+      console.log('Enhancing chapters - Request payload:', { 
+        chapters: chaptersToEnhance.map(ch => ({
+          title: ch.chapter.title,
+          content: ch.chapter.content,
+        }))
+      });
+      
+      const response = await axios.post(`${backendUrl}/api/enhance-chapters`, { 
+        chapters: chaptersToEnhance.map(ch => ({
+          title: ch.chapter.title,
+          content: ch.chapter.content,
+        }))
+      }, {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          chapters: chaptersToEnhance.map(ch => ({
-            title: ch.chapter.title,
-            content: ch.chapter.content,
-          }))
-        }),
+        timeout: 60000 // 60 second timeout
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to enhance chapters');
-      }
+      console.log('Enhance chapters response:', response.data);
       
-      const data = await response.json();
+      const data = response.data;
       
       const newEnhancedChapters = [...enhancedChapterizedTranscript];
       
@@ -78,7 +134,8 @@ const backendUrl = 'https://youtube-backend-qw29.onrender.com';
       
       return true;
     } catch (error) {
-      console.error('Error enhancing chapters:', error);
+      console.error('Error enhancing chapters - Full error:', error);
+      console.error('Error response:', error.response);
       
       const updatedStatus = { ...chapterEnhancementStatus };
       chaptersToEnhance.forEach(chapter => {
@@ -99,27 +156,23 @@ const backendUrl = 'https://youtube-backend-qw29.onrender.com';
       
       console.log(`Processing batch - Start: ${startIndex}, End: ${endIndex}`);
       
-      const response = await fetch(`${backendUrl}/api/generate-sequential-analyses`, {
-        method: 'POST',
+      const response = await axios.post(`${backendUrl}/api/generate-sequential-analyses`, {
+        chapters: chaptersToAnalyze,
+        startIndex,
+        endIndex
+      }, {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          chapters: chaptersToAnalyze,
-          startIndex,
-          endIndex
-        }),
+        timeout: 60000 // 60 second timeout
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to generate analyses');
-      }
-      
-      const data = await response.json();
-      return data.chapterAnalyses;  // Return the analyses instead of updating state
+      console.log('Batch analysis response:', response.data);
+      return response.data.chapterAnalyses;  // Return the analyses instead of updating state
       
     } catch (error) {
-      console.error('Error generating analyses:', error);
+      console.error('Error generating analyses - Full error:', error);
+      console.error('Error response:', error.response);
       return null;
     }
   };
@@ -197,24 +250,23 @@ const backendUrl = 'https://youtube-backend-qw29.onrender.com';
     processInitialChapters();
   }, [rawChapterizedTranscript]);
 
-  // Handle chapter click - only for view changes
-// Handle chapter click with transcript enhancement
-const handleChapterClick = async (index) => {
-  setActiveChapter(index);
-  
-  // If this chapter hasn't been enhanced yet and isn't currently being enhanced
-  if (
-    index >= 0 && 
-    index < rawChapterizedTranscript.length && 
-    chapterEnhancementStatus[index] !== 'completed' && 
-    chapterEnhancementStatus[index] !== 'enhancing'
-  ) {
-    await enhanceChapters([{ 
-      chapter: rawChapterizedTranscript[index], 
-      index 
-    }]);
-  }
-};
+  // Handle chapter click with transcript enhancement
+  const handleChapterClick = async (index) => {
+    setActiveChapter(index);
+    
+    // If this chapter hasn't been enhanced yet and isn't currently being enhanced
+    if (
+      index >= 0 && 
+      index < rawChapterizedTranscript.length && 
+      chapterEnhancementStatus[index] !== 'completed' && 
+      chapterEnhancementStatus[index] !== 'enhancing'
+    ) {
+      await enhanceChapters([{ 
+        chapter: rawChapterizedTranscript[index], 
+        index 
+      }]);
+    }
+  };
 
   const fetchTranscript = async () => {
     if (!videoUrl.trim()) {
@@ -241,28 +293,79 @@ const handleChapterClick = async (index) => {
       setGeneratingAnalyses(false);
       setLastAnalyzedChapter(-1);
       
-      const response = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(videoUrl)}`);
-      const data = await response.json();
+      console.log('Fetching transcript for URL:', videoUrl);
+      console.log('Using backend URL:', `${backendUrl}/api/video-data`);
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch video data');
+      try {
+        // Try using Axios first
+        const response = await axios.get(`${backendUrl}/api/video-data`, {
+          params: { url: videoUrl },
+          timeout: 60000, // 60 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        console.log('Fetch transcript response status:', response.status);
+        console.log('Fetch transcript response data:', response.data);
+        
+        const data = response.data;
+        
+        setVideoDetails(data.videoDetails);
+        setTranscript(data.transcript);
+        setRawChapterizedTranscript(data.organizedTranscript);
+        setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
+        
+        const initialStatus = {};
+        data.organizedTranscript.forEach((_, index) => {
+          initialStatus[index] = 'pending';
+        });
+        setChapterEnhancementStatus(initialStatus);
+        
+        setDataFetched(true);
+      } catch (axiosError) {
+        console.error('Axios request failed - Falling back to fetch', axiosError);
+        
+        // Fallback to fetch if axios fails
+        const fetchResponse = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(videoUrl)}`);
+        console.log('Fetch API response status:', fetchResponse.status);
+        
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text();
+          console.error('Fetch API error text:', errorText);
+          throw new Error(errorText || 'Failed to fetch video data');
+        }
+        
+        const data = await fetchResponse.json();
+        console.log('Fetch API response data:', data);
+        
+        setVideoDetails(data.videoDetails);
+        setTranscript(data.transcript);
+        setRawChapterizedTranscript(data.organizedTranscript);
+        setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
+        
+        const initialStatus = {};
+        data.organizedTranscript.forEach((_, index) => {
+          initialStatus[index] = 'pending';
+        });
+        setChapterEnhancementStatus(initialStatus);
+        
+        setDataFetched(true);
       }
-      
-      setVideoDetails(data.videoDetails);
-      setTranscript(data.transcript);
-      setRawChapterizedTranscript(data.organizedTranscript);
-      setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
-      
-      const initialStatus = {};
-      data.organizedTranscript.forEach((_, index) => {
-        initialStatus[index] = 'pending';
-      });
-      setChapterEnhancementStatus(initialStatus);
-      
-      setDataFetched(true);
-      
     } catch (err) {
-      setError(err.message || 'An error occurred while fetching the video data');
+      console.error('Error fetching transcript - Full error:', err);
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        console.error('Error response headers:', err.response.headers);
+        setError(err.response.data?.message || 'An error occurred while fetching the video data');
+      } else if (err.request) {
+        console.error('Error request (no response received):', err.request);
+        setError('No response received from server. Please check your connection.');
+      } else {
+        console.error('Error message:', err.message);
+        setError(err.message || 'An error occurred while fetching the video data');
+      }
       setVideoDetails(null);
       setDataFetched(false);
     } finally {
@@ -280,25 +383,29 @@ const handleChapterClick = async (index) => {
       setLoading(true);
       setError('');
       
-      const response = await fetch(`${backendUrl}/api/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ transcript }),
-      });
+      const response = await axios.post(`${backendUrl}/api/analyze`, 
+        { transcript },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 60000 // 60 second timeout
+        }
+      );
       
-      const data = await response.json();
+      console.log('Analyze response:', response.data);
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to analyze video');
-      }
-      
-      setWorthWatching(data.analysis);
+      setWorthWatching(response.data.analysis);
       setActiveTab('analysis');
       
     } catch (err) {
-      setError(err.message || 'An error occurred while analyzing the video');
+      console.error('Error analyzing - Full error:', err);
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        setError(err.response.data?.message || 'An error occurred while analyzing the video');
+      } else {
+        setError(err.message || 'An error occurred while analyzing the video');
+      }
     } finally {
       setLoading(false);
     }
@@ -309,6 +416,12 @@ const handleChapterClick = async (index) => {
       <Header />
       
       <main className="container-wide">
+        {connectionStatus && (
+          <div className={`connection-status ${connectionStatus.includes('error') || connectionStatus.includes('failed') ? 'error' : 'success'}`}>
+            {connectionStatus}
+          </div>
+        )}
+        
         <SearchBar 
           videoUrl={videoUrl} 
           setVideoUrl={setVideoUrl} 
