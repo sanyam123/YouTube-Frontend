@@ -31,7 +31,7 @@ function App() {
   const [lastAnalyzedChapter, setLastAnalyzedChapter] = useState(-1);
 
 // const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const backendUrl = 'http://localhost:5000';
+const backendUrl = 'https://youtube-backend-qw29.onrender.com';
   const BATCH_SIZE = 3;
 
   // Function to enhance specific chapters
