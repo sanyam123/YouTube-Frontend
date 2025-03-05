@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import SearchBar from './components/SearchBar';
 import TranscriptViewer from './components/TranscriptViewer';
-import AnalysisSection from './components/AnalysisSection';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import LoadingSpinner from './components/LoadingSpinner';
 import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
-import axios from 'axios'; // Make sure axios is installed: npm install axios
+import axios from 'axios';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -59,21 +58,17 @@ function App() {
   // Handle URL parameters when component mounts
   useEffect(() => {
     const handleUrlParameters = () => {
-      // Get URL search parameters
       const params = new URLSearchParams(window.location.search);
       const videoId = params.get('videoId') || params.get('v');
       
       if (videoId) {
         console.log('Video ID detected in URL:', videoId);
-        // Construct the full YouTube URL
         const fullYoutubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         setVideoUrl(fullYoutubeUrl);
-        // Trigger transcript fetch automatically
         fetchTranscriptWithUrl(fullYoutubeUrl);
       }
     };
     
-    // Call handler after testing connection
     testBackendConnection().then(connected => {
       if (connected) {
         handleUrlParameters();
@@ -86,7 +81,6 @@ function App() {
     try {
       setConnectionStatus('Testing connection to backend...');
       
-      // Test root endpoint
       const rootResponse = await fetch(`${backendUrl}`);
       console.log('Root endpoint status:', rootResponse.status);
       
@@ -97,7 +91,6 @@ function App() {
         return false;
       }
       
-      // Test CORS-specific endpoint
       try {
         const corsResponse = await fetch(`${backendUrl}/api/cors-test`);
         console.log('CORS test status:', corsResponse.status);
@@ -107,7 +100,6 @@ function App() {
           console.log('CORS test response:', corsData);
         }
       } catch (corsError) {
-        // Don't fail the entire connection test if CORS test fails
         console.warn('CORS test failed, but continuing:', corsError);
       }
       
@@ -145,7 +137,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 60000 // 60 second timeout
+        timeout: 60000
       });
       
       console.log('Enhance chapters response:', response.data);
@@ -195,14 +187,12 @@ function App() {
         startIndex,
         endIndex
       }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 60000 // 60 second timeout
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000
       });
       
       console.log('Batch analysis response:', response.data);
-      return response.data.chapterAnalyses;  // Return the analyses instead of updating state
+      return response.data.chapterAnalyses;
       
     } catch (error) {
       console.error('Error generating analyses - Full error:', error);
@@ -224,7 +214,6 @@ function App() {
         const batchEndIndex = Math.min(i + BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
         console.log(`Starting batch from ${i} to ${batchEndIndex}`);
         
-        // Mark chapters as pending before processing
         for (let j = i; j <= batchEndIndex; j++) {
           updatedStatus[j] = 'pending';
         }
@@ -233,7 +222,6 @@ function App() {
         const batchAnalyses = await generateBatchAnalyses(i, batchEndIndex);
         
         if (batchAnalyses) {
-          // Accumulate analyses from this batch
           batchAnalyses.forEach(analysis => {
             if (analysis && typeof analysis.chapterIndex === 'number') {
               allAnalyses[analysis.chapterIndex] = analysis;
@@ -243,7 +231,6 @@ function App() {
         }
       }
       
-      // After all batches are processed, update state once
       setChapterAnalyses(allAnalyses);
       setChapterAnalysisStatus(updatedStatus);
       setLastAnalyzedChapter(rawChapterizedTranscript.length - 1);
@@ -256,37 +243,55 @@ function App() {
     }
   };
 
-  // Effect to handle initial enhancement and start batch processing
+  // Effect to handle initial enhancement and start batch processing for videos with and without chapters
   useEffect(() => {
-    const processInitialChapters = async () => {
-      if (rawChapterizedTranscript.length > 0 && !enhancingTranscript && hasChapters) {
-        setEnhancingTranscript(true);
-        
-        try {
-          const chaptersToEnhance = rawChapterizedTranscript
-            .slice(0, Math.min(2, rawChapterizedTranscript.length))
-            .map((chapter, index) => ({ chapter, index }));
+    if (!dataFetched || !videoDetails) return;
+
+    const processVideo = async () => {
+      if (hasChapters) {
+        // Process videos with chapters (existing logic)
+        if (rawChapterizedTranscript.length > 0 && !enhancingTranscript) {
+          setEnhancingTranscript(true);
           
-          if (chaptersToEnhance.length > 0) {
-            await Promise.all([
-              enhanceChapters(chaptersToEnhance),
-              processAllChaptersInBatches(0)
-            ]);
+          try {
+            const chaptersToEnhance = rawChapterizedTranscript
+              .slice(0, Math.min(2, rawChapterizedTranscript.length))
+              .map((chapter, index) => ({ chapter, index }));
+            
+            if (chaptersToEnhance.length > 0) {
+              await Promise.all([
+                enhanceChapters(chaptersToEnhance),
+                processAllChaptersInBatches(0)
+              ]);
+            }
+          } catch (error) {
+            console.error('Error processing initial chapters:', error);
+          } finally {
+            setEnhancingTranscript(false);
           }
-        } catch (error) {
-          console.error('Error processing initial chapters:', error);
-        } finally {
-          setEnhancingTranscript(false);
+        }
+      } else {
+        // Process videos without chapters (new logic)
+        if (!processingNoChapterTranscript) {
+          console.log('Starting to process video without chapters');
+          setLoadingNoChapterTranscript(true);
+          setLoadingNoChapterAnalysis(true);
+          processNoChapterTranscript();
         }
       }
     };
     
-    processInitialChapters();
-  }, [rawChapterizedTranscript, hasChapters]);
+    processVideo();
+  }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, enhancingTranscript, processingNoChapterTranscript]);
 
   // NEW: Function to split transcript into chunks for non-chaptered videos
   const splitTranscriptIntoChunks = (transcriptData) => {
-    if (!transcriptData || transcriptData.length === 0) return [];
+    if (!transcriptData || transcriptData.length === 0) {
+      console.error('No transcript data available to split into chunks');
+      return [];
+    }
+    
+    console.log('Splitting transcript into chunks. Length:', transcriptData.length);
     
     const chunks = [];
     let currentChunk = [];
@@ -295,18 +300,18 @@ function App() {
     
     for (const segment of transcriptData) {
       currentChunk.push(segment);
-      currentChunkDuration += segment.duration;
+      currentChunkDuration += segment.duration || 0;
       
       if (currentChunkDuration >= maxChunkDuration) {
         // Calculate chunk text
         const chunkText = currentChunk
-          .map(item => item.text)
+          .map(item => item.text || '')
           .join(' ')
           .replace(/\s+/g, ' ');
         
         chunks.push({
-          startTime: currentChunk[0].offset,
-          endTime: currentChunk[currentChunk.length - 1].offset + currentChunk[currentChunk.length - 1].duration,
+          startTime: currentChunk[0].offset || 0,
+          endTime: (currentChunk[currentChunk.length - 1].offset || 0) + (currentChunk[currentChunk.length - 1].duration || 0),
           content: chunkText,
           index: chunks.length
         });
@@ -320,7 +325,7 @@ function App() {
         for (let i = currentChunk.length - 1; i >= 0; i--) {
           if (tempDuration < contextDuration) {
             contextSegments.unshift(currentChunk[i]);
-            tempDuration += currentChunk[i].duration;
+            tempDuration += currentChunk[i].duration || 0;
           } else {
             break;
           }
@@ -334,18 +339,19 @@ function App() {
     // Add any remaining segments as the last chunk
     if (currentChunk.length > 0) {
       const chunkText = currentChunk
-        .map(item => item.text)
+        .map(item => item.text || '')
         .join(' ')
         .replace(/\s+/g, ' ');
       
       chunks.push({
-        startTime: currentChunk[0].offset,
-        endTime: currentChunk[currentChunk.length - 1].offset + currentChunk[currentChunk.length - 1].duration,
+        startTime: currentChunk[0].offset || 0,
+        endTime: (currentChunk[currentChunk.length - 1].offset || 0) + (currentChunk[currentChunk.length - 1].duration || 0),
         content: chunkText,
         index: chunks.length
       });
     }
     
+    console.log(`Split transcript into ${chunks.length} chunks`);
     return chunks;
   };
 
@@ -359,10 +365,8 @@ function App() {
         previousContext: previousContext,
         chunkIndex: chunk.index
       }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 60000 // 60 second timeout
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000
       });
       
       console.log(`Chunk ${chunk.index} processed successfully`);
@@ -375,21 +379,42 @@ function App() {
 
   // NEW: Function to process non-chaptered video transcript
   const processNoChapterTranscript = async () => {
-    if (processingNoChapterTranscript || !transcript) return;
+    if (processingNoChapterTranscript || !transcript) {
+      console.log("Cannot process: already processing or no transcript", {
+        processingNoChapterTranscript,
+        hasTranscript: Boolean(transcript)
+      });
+      return;
+    }
     
+    console.log("Starting non-chaptered transcript processing");
     setProcessingNoChapterTranscript(true);
     
     try {
+      // Verify videoDetails and transcriptData
+      if (!videoDetails) {
+        console.error("No videoDetails available");
+        return;
+      }
+      
+      // Extract transcriptData from the response
+      const transcriptData = videoDetails.transcriptData;
+      
+      if (!transcriptData || !Array.isArray(transcriptData)) {
+        console.error("Missing or invalid transcriptData:", transcriptData);
+        return;
+      }
+      
+      console.log("TranscriptData available, items:", transcriptData.length);
+      
       // Split transcript into chunks
-      const chunks = splitTranscriptIntoChunks(videoDetails.transcriptData);
+      const chunks = splitTranscriptIntoChunks(transcriptData);
       setNoChapterTranscriptChunks(chunks);
       
       if (chunks.length === 0) {
         console.error('Failed to split transcript into chunks');
         return;
       }
-      
-      console.log(`Split transcript into ${chunks.length} chunks`);
       
       // Process chunks sequentially to maintain context
       let previousContext = '';
@@ -399,12 +424,9 @@ function App() {
       let aggregatedQuotes = '';
       
       for (let i = 0; i < chunks.length; i++) {
-        // Update loading state for UI
-        if (activeTab === 'transcript') {
-          setLoadingNoChapterTranscript(true);
-        } else if (activeTab === 'takeaways') {
-          setLoadingNoChapterAnalysis(true);
-        }
+        // Update loading states for UI feedback
+        setLoadingNoChapterTranscript(true);
+        setLoadingNoChapterAnalysis(true);
         
         const result = await processTranscriptChunk(chunks[i], previousContext);
         
@@ -447,9 +469,11 @@ function App() {
           
           // Update context for next chunk
           previousContext = result.contextForNextChunk;
+        } else {
+          console.error(`Failed to process chunk ${i}`);
         }
         
-        // Turn off loading indicators after each chunk is processed
+        // Update loading indicators after each chunk is processed
         setLoadingNoChapterTranscript(false);
         setLoadingNoChapterAnalysis(false);
       }
@@ -484,16 +508,6 @@ function App() {
     }
   };
 
-  // NEW: Effect to handle tab changes for non-chaptered videos
-  useEffect(() => {
-    if (!hasChapters && dataFetched && (activeTab === 'transcript' || activeTab === 'takeaways')) {
-      // Start processing non-chaptered transcript if it hasn't been started yet
-      if (noChapterTranscriptChunks.length === 0) {
-        processNoChapterTranscript();
-      }
-    }
-  }, [hasChapters, dataFetched, activeTab, noChapterTranscriptChunks.length]);
-
   // Helper function for fetching transcript with a specific URL
   const fetchTranscriptWithUrl = async (url) => {
     if (!url.trim()) {
@@ -514,7 +528,7 @@ function App() {
       setChapterAnalysisStatus({});
       setSummary('');
       setWorthWatching('');
-      setActiveTab('transcript'); // Set default tab to transcript view for auto-loaded videos
+      setActiveTab('transcript');
       setActiveChapter(0);
       setEnhancingTranscript(false);
       setGeneratingAnalyses(false);
@@ -541,10 +555,8 @@ function App() {
         // Try using Axios first
         const response = await axios.get(`${backendUrl}/api/video-data`, {
           params: { url: url },
-          timeout: 60000, // 60 second timeout
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          timeout: 60000,
+          headers: { 'Content-Type': 'application/json' }
         });
         
         console.log('Fetch transcript response status:', response.status);
@@ -557,6 +569,15 @@ function App() {
         
         setVideoDetails(data.videoDetails);
         setTranscript(data.transcript);
+        
+        // Store the full transcript data for non-chaptered processing
+        if (data.transcriptData) {
+          // Ensure videoDetails includes transcriptData for non-chaptered processing
+          setVideoDetails(prev => ({
+            ...prev,
+            transcriptData: data.transcriptData
+          }));
+        }
         
         if (data.hasChapters) {
           // Process chapters as before
@@ -602,6 +623,15 @@ function App() {
         
         setVideoDetails(data.videoDetails);
         setTranscript(data.transcript);
+        
+        // Store the full transcript data for non-chaptered processing
+        if (data.transcriptData) {
+          // Ensure videoDetails includes transcriptData for non-chaptered processing
+          setVideoDetails(prev => ({
+            ...prev,
+            transcriptData: data.transcriptData
+          }));
+        }
         
         if (data.hasChapters) {
           // Process chapters as before
@@ -666,10 +696,8 @@ function App() {
       const response = await axios.post(`${backendUrl}/api/analyze`, 
         { transcript },
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 60000 // 60 second timeout
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 60000
         }
       );
       
@@ -691,7 +719,7 @@ function App() {
     }
   };
 
-  // NEW: Component for displaying non-chaptered transcript
+  // Component for displaying non-chaptered transcript
   const NoChapterTranscriptViewer = ({ transcript, loading }) => {
     if (loading) {
       return (
@@ -719,7 +747,7 @@ function App() {
     );
   };
 
-  // NEW: Component for displaying non-chaptered analysis
+  // Component for displaying non-chaptered analysis
   const NoChapterAnalysisViewer = ({ analysis, loading }) => {
     if (loading) {
       return (
@@ -744,12 +772,13 @@ function App() {
           <div className="summary-section">
             <h3>Summary</h3>
             {analysis.summary.split('\n\n').map((paragraph, index) => (
-              <p key={index} style={{ marginBottom: '16px' }}>{paragraph}</p>
-            ))}
-          </div>
-        )}
-        
-        {analysis.takeaways && (
+              <p key={index} style={{ marginBottom: '16px' }}>
+              {paragraph} </p>
+              ))}
+              </div>
+            )}
+
+{analysis.takeaways && (
           <div className="takeaways-section" style={{ marginTop: '24px' }}>
             <h3>Key Takeaways</h3>
             <div dangerouslySetInnerHTML={{ __html: analysis.takeaways.replace(/\n/g, '<br/>') }} />
