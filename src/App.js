@@ -492,7 +492,7 @@ function App() {
         processNoChapterTranscript();
       }
     }
-  }, [hasChapters, dataFetched, activeTab]);
+  }, [hasChapters, dataFetched, activeTab, noChapterTranscriptChunks.length]);
 
   // Helper function for fetching transcript with a specific URL
   const fetchTranscriptWithUrl = async (url) => {
@@ -672,9 +672,6 @@ function App() {
           timeout: 60000 // 60 second timeout
         }
       );
-}
-
-export default App;
       
       console.log('Analyze response:', response.data);
       
@@ -905,3 +902,6 @@ export default App;
       <Footer />
     </div>
   );
+}
+
+export default App;
