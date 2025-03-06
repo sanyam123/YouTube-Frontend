@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import SearchBar from './components/SearchBar';
 import TranscriptViewer from './components/TranscriptViewer';
@@ -48,12 +48,24 @@ function App() {
   const [loadingNoChapterAnalysis, setLoadingNoChapterAnalysis] = useState(false);
   const [noChapterTranscriptChunks, setNoChapterTranscriptChunks] = useState([]);
   const [noChapterAnalysisChunks, setNoChapterAnalysisChunks] = useState([]);
+  
+  // SAFEGUARD 1: Add ref to track if processing has already been initiated
+  const noChapterProcessingInitiated = useRef(false);
+  // SAFEGUARD 2: Add ref to track the current video ID being processed
+  const currentVideoId = useRef(null);
 
   const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   console.log('Using backend URL:', backendUrl);
   
   const BATCH_SIZE = 3;
   const CHUNK_SIZE_MINUTES = 10; // Size of chunks for non-chaptered videos in minutes
+
+  // Extract video ID from URL - helper function
+  const extractVideoId = (url) => {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : null;
+  };
 
   // Handle URL parameters when component mounts
   useEffect(() => {
@@ -244,8 +256,20 @@ function App() {
   };
 
   // Effect to handle initial enhancement and start batch processing for videos with and without chapters
+  // SAFEGUARD 3: Completely rewritten useEffect with multiple safeguards
   useEffect(() => {
+    // Skip if data hasn't been fetched yet
     if (!dataFetched || !videoDetails) return;
+    
+    const videoId = extractVideoId(videoUrl);
+    console.log('Current video ID:', videoId);
+    
+    // SAFEGUARD 4: Check if this is a new video
+    if (currentVideoId.current !== videoId) {
+      console.log('New video detected, resetting processing state');
+      noChapterProcessingInitiated.current = false;
+      currentVideoId.current = videoId;
+    }
 
     const processVideo = async () => {
       if (hasChapters) {
@@ -271,18 +295,33 @@ function App() {
           }
         }
       } else {
-        // Process videos without chapters (new logic)
-        if (!processingNoChapterTranscript) {
+        // Process videos without chapters (new logic with safeguards)
+        // SAFEGUARD 5: Multiple conditions to prevent reprocessing
+        if (
+          !processingNoChapterTranscript && 
+          !noChapterProcessingInitiated.current && 
+          noChapterTranscriptChunks.length === 0 &&
+          videoDetails?.transcriptData?.length > 0
+        ) {
           console.log('Starting to process video without chapters');
+          
+          // SAFEGUARD 6: Mark processing as initiated before actually starting
+          noChapterProcessingInitiated.current = true;
+          
           setLoadingNoChapterTranscript(true);
           setLoadingNoChapterAnalysis(true);
-          processNoChapterTranscript();
+          
+          // Introduce a small delay to ensure state updates have propagated
+          setTimeout(() => {
+            processNoChapterTranscript();
+          }, 100);
         }
       }
     };
     
     processVideo();
-  }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, enhancingTranscript, processingNoChapterTranscript]);
+  }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, enhancingTranscript, videoUrl]);
+  // SAFEGUARD 7: Remove problematic dependencies from dependency array
 
   // NEW: Function to split transcript into chunks for non-chaptered videos
   const splitTranscriptIntoChunks = (transcriptData) => {
@@ -378,12 +417,21 @@ function App() {
   };
 
   // NEW: Function to process non-chaptered video transcript
+  // SAFEGUARD 8: Improved processNoChapterTranscript with additional checks
   const processNoChapterTranscript = async () => {
-    if (processingNoChapterTranscript || !transcript) {
-      console.log("Cannot process: already processing or no transcript", {
-        processingNoChapterTranscript,
-        hasTranscript: Boolean(transcript)
-      });
+    // SAFEGUARD 9: Multiple early-return conditions
+    if (processingNoChapterTranscript) {
+      console.log("Already processing transcript, skipping");
+      return;
+    }
+    
+    if (noChapterTranscriptChunks.length > 0) {
+      console.log("Chunks already exist, skipping processing");
+      return;
+    }
+    
+    if (!transcript) {
+      console.log("Cannot process: no transcript available");
       return;
     }
     
@@ -409,12 +457,17 @@ function App() {
       
       // Split transcript into chunks
       const chunks = splitTranscriptIntoChunks(transcriptData);
-      setNoChapterTranscriptChunks(chunks);
       
+      // SAFEGUARD 10: Check for valid chunks before continuing
       if (chunks.length === 0) {
         console.error('Failed to split transcript into chunks');
         return;
       }
+      
+      // SAFEGUARD 11: Set chunks in state before processing to prevent duplicate processing
+      setNoChapterTranscriptChunks(chunks);
+      
+      console.log(`Split transcript into ${chunks.length} chunks`);
       
       // Process chunks sequentially to maintain context
       let previousContext = '';
@@ -432,7 +485,7 @@ function App() {
         
         if (result) {
           // Update enhanced transcript
-          const updatedChunks = [...noChapterTranscriptChunks];
+          const updatedChunks = [...chunks]; // SAFEGUARD 12: Use original chunks array here
           updatedChunks[i] = {
             ...updatedChunks[i],
             enhancedContent: result.enhancedTranscript,
@@ -446,6 +499,10 @@ function App() {
           
           // Update analysis
           const updatedAnalysisChunks = [...noChapterAnalysisChunks];
+          while (updatedAnalysisChunks.length <= i) {
+            updatedAnalysisChunks.push(null); // SAFEGUARD 13: Ensure array has enough slots
+          }
+          
           updatedAnalysisChunks[i] = {
             index: i,
             ...result.analysis,
@@ -547,6 +604,10 @@ function App() {
       setLoadingNoChapterAnalysis(false);
       setNoChapterTranscriptChunks([]);
       setNoChapterAnalysisChunks([]);
+      
+      // SAFEGUARD 14: Reset the refs that track processing state
+      noChapterProcessingInitiated.current = false;
+      currentVideoId.current = extractVideoId(url);
       
       console.log('Fetching transcript for URL:', url);
       console.log('Using backend URL:', `${backendUrl}/api/video-data`);
@@ -673,6 +734,9 @@ function App() {
       }
       setVideoDetails(null);
       setDataFetched(false);
+      
+      // SAFEGUARD 15: Reset processing state on error
+      noChapterProcessingInitiated.current = false;
     } finally {
       setLoading(false);
     }
@@ -705,7 +769,6 @@ function App() {
       
       setWorthWatching(response.data.analysis);
       setActiveTab('analysis');
-      
     } catch (err) {
       console.error('Error analyzing - Full error:', err);
       if (err.response) {
@@ -772,13 +835,12 @@ function App() {
           <div className="summary-section">
             <h3>Summary</h3>
             {analysis.summary.split('\n\n').map((paragraph, index) => (
-              <p key={index} style={{ marginBottom: '16px' }}>
-              {paragraph} </p>
-              ))}
-              </div>
-            )}
-
-{analysis.takeaways && (
+              <p key={index} style={{ marginBottom: '16px' }}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+        
+        {analysis.takeaways && (
           <div className="takeaways-section" style={{ marginTop: '24px' }}>
             <h3>Key Takeaways</h3>
             <div dangerouslySetInnerHTML={{ __html: analysis.takeaways.replace(/\n/g, '<br/>') }} />
