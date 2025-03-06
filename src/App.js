@@ -786,7 +786,7 @@ function App() {
   const NoChapterTranscriptViewer = ({ transcript, loading }) => {
     if (loading) {
       return (
-        <div className="loading-container" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div className="loading-container">
           <LoadingSpinner />
           <p>Fetching Enhanced Transcript...</p>
         </div>
@@ -795,16 +795,16 @@ function App() {
     
     if (!transcript) {
       return (
-        <div className="empty-state" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div className="empty-state">
           <p>Transcript will appear here as it's processed.</p>
         </div>
       );
     }
     
     return (
-      <div className="no-chapter-transcript" style={{ padding: '20px' }}>
+      <div className="no-chapter-transcript">
         {transcript.split('\n\n').map((paragraph, index) => (
-          <p key={index} style={{ marginBottom: '16px' }}>{paragraph}</p>
+          <p key={index}>{paragraph}</p>
         ))}
       </div>
     );
@@ -814,7 +814,7 @@ function App() {
   const NoChapterAnalysisViewer = ({ analysis, loading }) => {
     if (loading) {
       return (
-        <div className="loading-container" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div className="loading-container">
           <LoadingSpinner />
           <p>Fetching Smart Insights...</p>
         </div>
@@ -823,32 +823,32 @@ function App() {
     
     if (!analysis.summary && !analysis.takeaways) {
       return (
-        <div className="empty-state" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div className="empty-state">
           <p>Analysis will appear here as it's processed.</p>
         </div>
       );
     }
     
     return (
-      <div className="no-chapter-analysis" style={{ padding: '20px' }}>
+      <div className="no-chapter-analysis">
         {analysis.summary && (
           <div className="summary-section">
             <h3>Summary</h3>
             {analysis.summary.split('\n\n').map((paragraph, index) => (
-              <p key={index} style={{ marginBottom: '16px' }}>{paragraph}</p>
+              <p key={index}>{paragraph}</p>
             ))}
           </div>
         )}
         
         {analysis.takeaways && (
-          <div className="takeaways-section" style={{ marginTop: '24px' }}>
+          <div className="takeaways-section">
             <h3>Key Takeaways</h3>
             <div dangerouslySetInnerHTML={{ __html: analysis.takeaways.replace(/\n/g, '<br/>') }} />
           </div>
         )}
         
         {analysis.quotes && (
-          <div className="quotes-section" style={{ marginTop: '24px' }}>
+          <div className="quotes-section">
             <h3>Notable Quotes</h3>
             <div dangerouslySetInnerHTML={{ __html: analysis.quotes.replace(/\n/g, '<br/>') }} />
           </div>
@@ -858,10 +858,10 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <Header />
+    <div className="App app-container">
+      <Header className="app-header" />
       
-      <main className="container-wide">
+      <main className="container-wide app-main">
         {connectionStatus && (
           <div className={`connection-status ${connectionStatus.includes('error') || connectionStatus.includes('failed') ? 'error' : 'success'}`}>
             {connectionStatus}
@@ -896,13 +896,7 @@ function App() {
             )}
             
             {!hasChapters && dataFetched && (
-              <div className="no-chapters-notification" style={{ 
-                backgroundColor: '#f8f9fa', 
-                border: '1px solid #dee2e6', 
-                borderRadius: '4px', 
-                padding: '10px 15px', 
-                marginBottom: '20px'
-              }}>
+              <div className="no-chapters-notification">
                 <p>
                   <strong>Note:</strong> This video doesn't have chapters. We'll process the transcript in sequential sections.
                 </p>
@@ -911,7 +905,7 @@ function App() {
             
             {dataFetched && (
               <>
-                <div className="button-container">
+                <div className="button-container tab-container">
                   <button 
                     onClick={() => setActiveTab('transcript')}
                     className={activeTab === 'transcript' ? 'active' : ''}
@@ -934,54 +928,56 @@ function App() {
                 </div>
                 
                 {activeTab && (
-                  <div className="content-container">
-                    {activeTab === 'transcript' && hasChapters && (
-                      <TranscriptViewer 
-                        rawChapterizedTranscript={rawChapterizedTranscript}
-                        enhancedChapterizedTranscript={enhancedChapterizedTranscript} 
-                        chapterEnhancementStatus={chapterEnhancementStatus}
-                        activeChapter={activeChapter}
-                        onChapterClick={handleChapterClick}
-                        videoDetails={videoDetails}
-                      />
-                    )}
-                    
-                    {activeTab === 'transcript' && !hasChapters && (
-                      <NoChapterTranscriptViewer
-                        transcript={noChapterEnhancedTranscript}
-                        loading={loadingNoChapterTranscript}
-                      />
-                    )}
-                    
-                    {activeTab === 'takeaways' && hasChapters && (
-                      <TakeawaysViewer
-                        chapterAnalyses={chapterAnalyses}
-                        chapterAnalysisStatus={chapterAnalysisStatus}
-                        rawChapterizedTranscript={rawChapterizedTranscript}
-                        activeChapter={activeChapter}
-                        onChapterClick={handleChapterClick}
-                        generatingAnalyses={generatingAnalyses}
-                      />
-                    )}
-                    
-                    {activeTab === 'takeaways' && !hasChapters && (
-                      <NoChapterAnalysisViewer
-                        analysis={noChapterAnalysis}
-                        loading={loadingNoChapterAnalysis}
-                      />
-                    )}
-                    
-                    {activeTab === 'analysis' && (
-                      <div className="generating-analysis" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                        <h3 style={{ marginBottom: '16px', color: 'var(--neutral-800)' }}>
-                          Coming Soon!
-                        </h3>
-                        <p style={{ color: 'var(--neutral-700)', maxWidth: '500px', margin: '0 auto' }}>
-                          We're working on an exciting new feature that will help you decide if a video is worth your time. 
-                          Stay tuned for the update!
-                        </p>
-                      </div>
-                    )}
+                  <div className="content-container-wrapper">
+                    <div className="content-container">
+                      {activeTab === 'transcript' && hasChapters && (
+                        <TranscriptViewer 
+                          rawChapterizedTranscript={rawChapterizedTranscript}
+                          enhancedChapterizedTranscript={enhancedChapterizedTranscript} 
+                          chapterEnhancementStatus={chapterEnhancementStatus}
+                          activeChapter={activeChapter}
+                          onChapterClick={handleChapterClick}
+                          videoDetails={videoDetails}
+                        />
+                      )}
+                      
+                      {activeTab === 'transcript' && !hasChapters && (
+                        <NoChapterTranscriptViewer
+                          transcript={noChapterEnhancedTranscript}
+                          loading={loadingNoChapterTranscript}
+                        />
+                      )}
+                      
+                      {activeTab === 'takeaways' && hasChapters && (
+                        <TakeawaysViewer
+                          chapterAnalyses={chapterAnalyses}
+                          chapterAnalysisStatus={chapterAnalysisStatus}
+                          rawChapterizedTranscript={rawChapterizedTranscript}
+                          activeChapter={activeChapter}
+                          onChapterClick={handleChapterClick}
+                          generatingAnalyses={generatingAnalyses}
+                        />
+                      )}
+                      
+                      {activeTab === 'takeaways' && !hasChapters && (
+                        <NoChapterAnalysisViewer
+                          analysis={noChapterAnalysis}
+                          loading={loadingNoChapterAnalysis}
+                        />
+                      )}
+                      
+                      {activeTab === 'analysis' && (
+                        <div className="generating-analysis">
+                          <h3>
+                            Coming Soon!
+                          </h3>
+                          <p>
+                            We're working on an exciting new feature that will help you decide if a video is worth your time. 
+                            Stay tuned for the update!
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </>
@@ -990,7 +986,7 @@ function App() {
         )}
       </main>
       
-      <Footer />
+      <Footer className="app-footer" />
     </div>
   );
 }

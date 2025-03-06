@@ -953,3 +953,103 @@ small {
     padding: 10px 16px;
   }
 }
+
+/* Add these styles to your App.css file */
+
+/* Main container layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  flex: 0 0 auto;
+}
+
+.app-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 20px;
+}
+
+.app-footer {
+  flex: 0 0 auto;
+}
+
+/* Tab and content containers */
+.tab-container {
+  flex: 0 0 auto;
+  margin-bottom: 15px;
+}
+
+.content-container-wrapper {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.content-container {
+  height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+/* No-chapter components styles */
+.no-chapter-transcript, 
+.no-chapter-analysis {
+  padding: 20px;
+}
+
+.summary-section h3,
+.takeaways-section h3,
+.quotes-section h3 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.summary-section p,
+.takeaways-section p,
+.quotes-section p {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* Custom scrollbar styling */
+.content-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.content-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.content-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Loading and empty state styling */
+.loading-container, 
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-chapters-notification {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+}
