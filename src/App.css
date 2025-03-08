@@ -1503,3 +1503,46 @@ small {
     height: 400px;
   }
 }
+
+/* Fix for search button on mobile */
+@media (max-width: 576px) {
+  .search-input button {
+    width: 100%;
+    padding: 14px 24px; /* Add proper vertical padding */
+    min-height: 50px; /* Ensure minimum height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+/* Enhanced loading spinner with text animation */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  text-align: center;
+}
+
+.loading-spinner .spinner-text {
+  margin-top: 16px;
+  font-size: var(--text-lg);
+  color: var(--primary-color);
+  font-weight: var(--font-medium);
+  position: relative;
+  animation: fadeEffect 2s infinite;
+}
+
+.loading-spinner .spinner-subtext {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--neutral-600);
+  max-width: 320px;
+}
+
+@keyframes fadeEffect {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
