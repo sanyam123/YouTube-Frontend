@@ -1,12 +1,20 @@
+// Updated Header Component for React
 import React from 'react';
+import './Header.css'; // Make sure to create this CSS file with the styles
 
-function Header() {
+const Header = () => {
   return (
     <header className="header">
-      <h1>YouTube Transcript Tool</h1>
-      <p>Get transcripts, summaries, and analysis of YouTube videos</p>
+      <div className="header-content">
+        <h1 className="main-title">
+          <span className="title-free">Free</span>{' '}
+          <span className="title-gradient">YouTube Smart Insights</span>{' '}
+          <span className="title-generator">Generator</span>
+        </h1>
+        <h2 className="subtitle">Get the best insights from any video, instantly.</h2>
+      </div>
     </header>
   );
-}
+};
 
 export default Header;
