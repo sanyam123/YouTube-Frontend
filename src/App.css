@@ -1547,40 +1547,43 @@ small {
   50% { opacity: 1; }
 }
 
-/* Fix for thumbnail height */
+/* Modify these existing properties in your App.css */
+
 .video-thumbnail {
   width: 100%;
-  height: 100%; /* Make it take full height */
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: flex; /* Add flex display to help with alignment */
-  align-items: center; /* Center content vertically */
+  /* Add display flex for better alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .thumbnail-img {
   width: 100%;
-  height: 100%; /* Make image take full height */
-  object-fit: cover; /* Maintain aspect ratio but cover the space */
+  height: auto; /* Keep this as auto */
+  object-fit: contain; /* Change from cover to contain */
   border-radius: 8px;
   transition: transform 0.3s ease;
+  max-height: 100%; /* Add max-height to ensure it doesn't overflow */
 }
 
-/* Fix video info container height */
+/* Adjust the video info grid to have a better aspect ratio */
 .video-info-grid {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 24px;
-  min-height: 240px; /* Set a minimum height */
+  align-items: start; /* Align items to the top */
 }
 
 @media (max-width: 768px) {
   .video-info-grid {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
   
   .video-thumbnail {
-    height: 220px; /* Set specific height on mobile */
+    max-width: 350px; /* Limit width on mobile */
+    margin: 0 auto; /* Center the thumbnail */
   }
 }
