@@ -1054,13 +1054,14 @@ small {
   margin-bottom: 20px;
 }
 
-/* Add these styles to your CSS file */
+/* Updated header styles with size adjustments */
 
 /* Header background */
 .header {
   background-color: #1a1528;
   padding: 2rem 1rem;
   text-align: center;
+  width: 100%;
 }
 
 .header-content {
@@ -1068,12 +1069,12 @@ small {
   margin: 0 auto;
 }
 
-/* Main title styling */
+/* Main title styling - increased size */
 .main-title {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-weight: 700;
   margin-bottom: 1rem;
-  font-size: 4rem; /* Adjust as needed to match your current size */
+  font-size: 4.5rem; /* Increased from 4rem */
   line-height: 1.2;
 }
 
@@ -1094,22 +1095,411 @@ small {
   color: #ffffff;
 }
 
-/* Subtitle styling */
+/* Subtitle styling - decreased size */
 .subtitle {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   color: #ffffff;
-  font-size: 1.5rem; /* Adjust as needed to match your current size */
+  font-size: 1.25rem; /* Decreased from 1.5rem */
   font-weight: 400;
   margin-top: 0.5rem;
 }
 
-/* Responsive adjustments if needed */
-@media (max-width: 768px) {
+/* Responsive adjustments */
+@media (max-width: 992px) {
   .main-title {
-    font-size: 3rem;
+    font-size: 3.5rem;
   }
   
   .subtitle {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-title {
+    font-size: 2.8rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 1.5rem 0.8rem;
+  }
+  
+  .main-title {
+    font-size: 2.2rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .header {
+    padding: 1.2rem 0.5rem;
+  }
+  
+  .main-title {
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+/* Footer styles */
+.footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e1e4e8;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  width: 100%;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer p {
+  color: #6c757d;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+  .footer {
+    padding: 1rem 0.8rem;
+  }
+  
+  .footer p {
+    font-size: 0.8rem;
+  }
+}
+
+/* How It Works Section */
+.how-it-works-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.05);
+  padding: 18px;
+  margin: 12px auto 12px; /* Reduced top/bottom margin */
+  max-width: 900px;
+  position: relative;
+  overflow: hidden;
+  border: none;
+}
+
+/* Remove the gradient border */
+.how-it-works-container::before {
+  display: none;
+}
+
+.how-it-works-heading {
+  font-family: var(--font-headings);
+  font-size: var(--text-lg); /* Smaller heading */
+  color: var(--neutral-700); /* Less prominent color */
+  text-align: center;
+  margin-bottom: 14px;
+  font-weight: var(--font-semibold);
+  position: relative;
+  display: inline-block;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Remove the gradient underline */
+.how-it-works-heading::after {
+  display: none;
+}
+
+.steps-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.step-item {
+  flex: 1;
+  width: calc(33.33% - 32px);
+  min-width: 0;
+  max-width: none;
+  height: 120px; /* Reduced height */
+  background-color: white;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(209, 213, 219, 0.3);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-item:hover {
+  background-color: var(--neutral-50);
+}
+
+.step-icon {
+  background-color: var(--primary-light);
+  color: white;
+  width: 28px; /* Smaller icon */
+  height: 28px; /* Smaller icon */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  margin: 0 auto 8px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Remove the pulsing animation */
+.step-icon::before {
+  display: none;
+}
+
+.step-item h3 {
+  font-family: var(--font-headings);
+  font-size: var(--text-base); /* Increased from text-sm */
+  color: var(--neutral-800);
+  margin-bottom: 6px; /* Slightly increased margin */
+  font-weight: var(--font-semibold);
+}
+
+.step-item p {
+  color: var(--neutral-600);
+  font-size: var(--text-sm); /* Increased from text-xs */
+  line-height: 1.4; /* Slightly increased line height */
+  margin: 0;
+}
+
+.step-arrow {
+  color: var(--neutral-400); /* Less prominent arrow color */
+  flex: 0 0 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .steps-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .step-item {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    min-height: 100px;
+  }
+  
+  .step-arrow {
+    transform: rotate(90deg);
+    margin: 6px 0;
+  }
+}
+/* Keep original search bar container styles */
+.search-bar {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  background-color: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--neutral-200);
+}
+
+/* Updated search button */
+.search-input button {
+  background: linear-gradient(90deg, #ff517b, #c558b4, #7b6cf6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 24px;
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-family: var(--font-headings); /* Match heading font */
+  font-weight: var(--font-semibold);
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-input button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.search-input button:active {
+  transform: translateY(1px);
+}
+
+.search-input button:disabled {
+  background: var(--neutral-300);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Input field with gradient border */
+.search-input input {
+  flex: 1;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: var(--text-base);
+  font-family: var(--font-primary);
+  transition: all 0.2s ease;
+  background-color: white;
+  position: relative;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  background-origin: border-box;
+}
+
+/* Create gradient border for input field */
+.search-input input {
+  background-image: linear-gradient(white, white), 
+                    linear-gradient(90deg, #ff517b, #c558b4, #7b6cf6);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.search-input input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(197, 88, 180, 0.2);
+}
+
+/* Responsive fixes - Add to end of your CSS file */
+
+/* Global responsive adjustments */
+@media (max-width: 992px) {
+  .container-wide {
+    width: 95%;
+    padding: 15px;
+  }
+  
+  .content-container {
+    max-width: 95%;
+    width: 100%;
+  }
+  
+  .how-it-works-container {
+    width: 95%;
+  }
+}
+
+/* Tablet adjustments */
+@media (max-width: 768px) {
+  /* Fix search bar on smaller screens */
+  .search-input {
+    flex-wrap: wrap;
+  }
+  
+  .search-input input {
+    flex: 1 0 70%;
+    min-width: 200px;
+  }
+  
+  .search-input button {
+    flex: 0 0 auto;
+  }
+  
+  /* Fix content container scrolling */
+  .content-container {
+    overflow-y: auto;
+  }
+  
+  /* Fix How It Works responsiveness */
+  .step-item {
+    height: auto;
+    min-height: 120px;
+    padding: 15px 10px;
+  }
+}
+
+/* Mobile phone adjustments */
+@media (max-width: 576px) {
+  .search-bar {
+    padding: 20px 15px;
+  }
+  
+  .search-bar h2 {
+    font-size: 1.3rem;
+  }
+  
+  .search-input {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .search-input input,
+  .search-input button {
+    width: 100%;
+  }
+  
+  .button-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .button-container button {
+    width: 100%;
+  }
+  
+  /* Fix tab navigation overflow */
+  .tabs-navigation {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+  }
+  
+  .tab-button {
+    padding: 10px 15px;
+  }
+}
+
+/* Fix for very small screens */
+@media (max-width: 480px) {
+  .chapter-content-area .chapter-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .copy-button {
+    align-self: flex-start;
+  }
+}
+
+/* Height-based adjustments for tall/short screens */
+@media (max-height: 800px) {
+  .content-container {
+    height: 500px;
+  }
+}
+
+@media (max-height: 600px) {
+  .content-container {
+    height: 400px;
   }
 }

@@ -1,12 +1,16 @@
+// Updated Footer.js
 import React from 'react';
 
-function Footer() {
+const Footer = () => {
+  const currentYear = new Date().getFullYear();
+  
   return (
     <footer className="footer">
-      <p>YouTube Transcript Tool &copy; {new Date().getFullYear()}</p>
-      <p>Powered by OpenAI</p>
+      <div className="footer-content">
+        <p>© {currentYear} YouTube Smart Insights Tool. All rights reserved.</p>
+      </div>
     </footer>
   );
-}
+};
 
 export default Footer;

@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import LoadingSpinner from './components/LoadingSpinner';
 import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
+import HowItWorks from './components/HowItWorks';
 import axios from 'axios';
 
 function App() {
@@ -862,11 +863,11 @@ function App() {
       <Header className="app-header" />
       
       <main className="container-wide app-main">
-        {connectionStatus && (
+        {/* {connectionStatus && (
           <div className={`connection-status ${connectionStatus.includes('error') || connectionStatus.includes('failed') ? 'error' : 'success'}`}>
             {connectionStatus}
           </div>
-        )}
+        )} */}
         
         <SearchBar 
           videoUrl={videoUrl} 
@@ -984,6 +985,7 @@ function App() {
             )}
           </>
         )}
+        {!loading && !dataFetched && <HowItWorks />}
       </main>
       
       <Footer className="app-footer" />

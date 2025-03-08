@@ -1,6 +1,5 @@
 // Updated Header Component for React
 import React from 'react';
-import './Header.css'; // Make sure to create this CSS file with the styles
 
 const Header = () => {
   return (
