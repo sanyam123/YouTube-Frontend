@@ -7,7 +7,6 @@ import Footer from './components/Footer';
 import LoadingSpinner from './components/LoadingSpinner';
 import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
-import HowItWorks from './components/HowItWorks';
 import axios from 'axios';
 
 function App() {
@@ -54,6 +53,8 @@ function App() {
   const noChapterProcessingInitiated = useRef(false);
   // SAFEGUARD 2: Add ref to track the current video ID being processed
   const currentVideoId = useRef(null);
+  // NEW: Add state to prevent repeated processing
+  const [processingInitiated, setProcessingInitiated] = useState(false);
 
   const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   console.log('Using backend URL:', backendUrl);
@@ -87,7 +88,7 @@ function App() {
         handleUrlParameters();
       }
     });
-  }, []);
+  }, []); // Empty dependency array to run only once
 
   // Test backend connection
   const testBackendConnection = async () => {
@@ -127,22 +128,39 @@ function App() {
 
   // Function to enhance specific chapters
   const enhanceChapters = async (chaptersToEnhance) => {
+    // If no chapters to enhance, return immediately
+    if (!chaptersToEnhance || chaptersToEnhance.length === 0) {
+      return true;
+    }
+    
     try {
       const updatedStatus = { ...chapterEnhancementStatus };
-      chaptersToEnhance.forEach(chapter => {
+      
+      // Skip chapters that are already completed or being enhanced
+      const chaptersToProcess = chaptersToEnhance.filter(chapter => 
+        updatedStatus[chapter.index] !== 'completed' && 
+        updatedStatus[chapter.index] !== 'enhancing'
+      );
+      
+      // If no chapters need processing, return immediately
+      if (chaptersToProcess.length === 0) {
+        return true;
+      }
+      
+      chaptersToProcess.forEach(chapter => {
         updatedStatus[chapter.index] = 'enhancing';
       });
       setChapterEnhancementStatus(updatedStatus);
       
       console.log('Enhancing chapters - Request payload:', { 
-        chapters: chaptersToEnhance.map(ch => ({
+        chapters: chaptersToProcess.map(ch => ({
           title: ch.chapter.title,
           content: ch.chapter.content,
         }))
       });
       
       const response = await axios.post(`${backendUrl}/api/enhance-chapters`, { 
-        chapters: chaptersToEnhance.map(ch => ({
+        chapters: chaptersToProcess.map(ch => ({
           title: ch.chapter.title,
           content: ch.chapter.content,
         }))
@@ -160,7 +178,7 @@ function App() {
       const newEnhancedChapters = [...enhancedChapterizedTranscript];
       
       data.enhancedChapters.forEach((enhancedChapter, idx) => {
-        const chapterIndex = chaptersToEnhance[idx].index;
+        const chapterIndex = chaptersToProcess[idx].index;
         newEnhancedChapters[chapterIndex] = {
           ...rawChapterizedTranscript[chapterIndex],
           content: enhancedChapter.enhancedContent
@@ -216,38 +234,58 @@ function App() {
 
   // Function to process all chapters in batches
   const processAllChaptersInBatches = async (startFromIndex = 0) => {
+    // If already processing or no data to process, exit immediately
     if (processingBatch || !rawChapterizedTranscript.length) return;
 
+    // Set processing flag to prevent concurrent processing
     setProcessingBatch(true);
+    
     const allAnalyses = new Array(rawChapterizedTranscript.length).fill(null);
     const updatedStatus = { ...chapterAnalysisStatus };
     
     try {
-      for (let i = startFromIndex; i < rawChapterizedTranscript.length; i += BATCH_SIZE) {
-        const batchEndIndex = Math.min(i + BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
-        console.log(`Starting batch from ${i} to ${batchEndIndex}`);
-        
-        for (let j = i; j <= batchEndIndex; j++) {
-          updatedStatus[j] = 'pending';
+      let i = startFromIndex;
+      
+      // Only process if there are more chapters to process
+      if (i <= rawChapterizedTranscript.length - 1 && i > lastAnalyzedChapter) {
+        for (; i < rawChapterizedTranscript.length; i += BATCH_SIZE) {
+          const batchEndIndex = Math.min(i + BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
+          console.log(`Starting batch from ${i} to ${batchEndIndex}`);
+          
+          for (let j = i; j <= batchEndIndex; j++) {
+            updatedStatus[j] = 'pending';
+          }
+          setChapterAnalysisStatus(updatedStatus);
+          
+          const batchAnalyses = await generateBatchAnalyses(i, batchEndIndex);
+          
+          if (batchAnalyses) {
+            batchAnalyses.forEach(analysis => {
+              if (analysis && typeof analysis.chapterIndex === 'number') {
+                allAnalyses[analysis.chapterIndex] = analysis;
+                updatedStatus[analysis.chapterIndex] = 'completed';
+              }
+            });
+          }
         }
-        setChapterAnalysisStatus(updatedStatus);
         
-        const batchAnalyses = await generateBatchAnalyses(i, batchEndIndex);
-        
-        if (batchAnalyses) {
-          batchAnalyses.forEach(analysis => {
-            if (analysis && typeof analysis.chapterIndex === 'number') {
-              allAnalyses[analysis.chapterIndex] = analysis;
-              updatedStatus[analysis.chapterIndex] = 'completed';
-            }
+        // Only update state if we have new analyses
+        if (i > startFromIndex) {
+          setChapterAnalyses(prevAnalyses => {
+            // Merge new analyses with existing ones
+            const mergedAnalyses = [...prevAnalyses];
+            allAnalyses.forEach((analysis, idx) => {
+              if (analysis !== null) {
+                mergedAnalyses[idx] = analysis;
+              }
+            });
+            return mergedAnalyses;
           });
+          
+          setChapterAnalysisStatus(updatedStatus);
+          setLastAnalyzedChapter(rawChapterizedTranscript.length - 1);
         }
       }
-      
-      setChapterAnalyses(allAnalyses);
-      setChapterAnalysisStatus(updatedStatus);
-      setLastAnalyzedChapter(rawChapterizedTranscript.length - 1);
-      
     } catch (error) {
       console.error('Error processing batches:', error);
     } finally {
@@ -257,24 +295,19 @@ function App() {
   };
 
   // Effect to handle initial enhancement and start batch processing for videos with and without chapters
-  // SAFEGUARD 3: Completely rewritten useEffect with multiple safeguards
+  // UPDATED: Fixed this effect to prevent infinite loops
   useEffect(() => {
-    // Skip if data hasn't been fetched yet
-    if (!dataFetched || !videoDetails) return;
+    // Skip if data hasn't been fetched yet or if processing has already been initiated
+    if (!dataFetched || !videoDetails || processingInitiated) return;
     
     const videoId = extractVideoId(videoUrl);
     console.log('Current video ID:', videoId);
     
-    // SAFEGUARD 4: Check if this is a new video
-    if (currentVideoId.current !== videoId) {
-      console.log('New video detected, resetting processing state');
-      noChapterProcessingInitiated.current = false;
-      currentVideoId.current = videoId;
-    }
-
     const processVideo = async () => {
+      setProcessingInitiated(true); // Set flag to prevent reprocessing
+      
       if (hasChapters) {
-        // Process videos with chapters (existing logic)
+        // Process videos with chapters
         if (rawChapterizedTranscript.length > 0 && !enhancingTranscript) {
           setEnhancingTranscript(true);
           
@@ -296,8 +329,7 @@ function App() {
           }
         }
       } else {
-        // Process videos without chapters (new logic with safeguards)
-        // SAFEGUARD 5: Multiple conditions to prevent reprocessing
+        // Process videos without chapters
         if (
           !processingNoChapterTranscript && 
           !noChapterProcessingInitiated.current && 
@@ -306,7 +338,7 @@ function App() {
         ) {
           console.log('Starting to process video without chapters');
           
-          // SAFEGUARD 6: Mark processing as initiated before actually starting
+          // Mark processing as initiated
           noChapterProcessingInitiated.current = true;
           
           setLoadingNoChapterTranscript(true);
@@ -321,8 +353,8 @@ function App() {
     };
     
     processVideo();
-  }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, enhancingTranscript, videoUrl]);
-  // SAFEGUARD 7: Remove problematic dependencies from dependency array
+  }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, videoUrl]);
+  // IMPORTANT: Removed enhancingTranscript from dependency array to prevent loops
 
   // NEW: Function to split transcript into chunks for non-chaptered videos
   const splitTranscriptIntoChunks = (transcriptData) => {
@@ -557,12 +589,18 @@ function App() {
       index >= 0 && 
       index < rawChapterizedTranscript.length && 
       chapterEnhancementStatus[index] !== 'completed' && 
-      chapterEnhancementStatus[index] !== 'enhancing'
+      chapterEnhancementStatus[index] !== 'enhancing' &&
+      !enhancingTranscript // Add this check to prevent concurrent enhancement
     ) {
-      await enhanceChapters([{ 
-        chapter: rawChapterizedTranscript[index], 
-        index 
-      }]);
+      setEnhancingTranscript(true); // Set flag before starting enhancement
+      try {
+        await enhanceChapters([{ 
+          chapter: rawChapterizedTranscript[index], 
+          index 
+        }]);
+      } finally {
+        setEnhancingTranscript(false); // Clear flag when done
+      }
     }
   };
 
@@ -595,6 +633,9 @@ function App() {
       setTranscriptLanguageName('English');
       setIsAutoGenerated(false);
       setRequiresTranslation(false);
+      
+      // Reset processing flags
+      setProcessingInitiated(false);
       
       // Reset non-chaptered video states
       setHasChapters(true);
@@ -738,6 +779,7 @@ function App() {
       
       // SAFEGUARD 15: Reset processing state on error
       noChapterProcessingInitiated.current = false;
+      setProcessingInitiated(false);
     } finally {
       setLoading(false);
     }
@@ -985,7 +1027,6 @@ function App() {
             )}
           </>
         )}
-        {!loading && !dataFetched && <HowItWorks />}
       </main>
       
       <Footer className="app-footer" />
