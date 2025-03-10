@@ -8,6 +8,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
 import axios from 'axios';
+import HowItWorks from './components/HowItWorks';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -928,6 +929,7 @@ function App() {
         ) : (
           <>
             {videoDetails && <VideoInfo videoDetails={videoDetails} />}
+            {!dataFetched && !loading && <HowItWorks />}
             
             {requiresTranslation && (
               <div className="language-notification">
