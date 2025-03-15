@@ -211,22 +211,77 @@ function App() {
     try {
       setGeneratingAnalyses(true);
       
-      const chaptersToAnalyze = rawChapterizedTranscript.slice(0, endIndex + 1);
-      
       console.log(`Processing batch - Start: ${startIndex}, End: ${endIndex}`);
       
-      const response = await axios.post(`${backendUrl}/api/generate-sequential-analyses`, {
-        chapters: chaptersToAnalyze,
-        startIndex,
-        endIndex
-      }, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 60000
-      });
+      // Process chapters in sequence to maintain context
+      for (let i = startIndex; i <= endIndex; i++) {
+        const chapter = rawChapterizedTranscript[i];
+        
+        // Update the status to pending for just this chapter
+        setChapterAnalysisStatus(prev => ({
+          ...prev,
+          [i]: 'pending'
+        }));
+        
+        // Get context from previously analyzed chapters
+        const contextSummaries = [];
+        for (let j = 0; j < i; j++) {
+          const previousAnalysis = chapterAnalyses[j];
+          if (previousAnalysis && previousAnalysis.summary) {
+            contextSummaries.push({
+              index: j,
+              title: rawChapterizedTranscript[j].title,
+              summary: previousAnalysis.summary
+            });
+          }
+        }
+        
+        try {
+          // Make API call for this specific chapter
+          const response = await axios.post(`${backendUrl}/api/generate-sequential-analyses`, {
+            chapters: rawChapterizedTranscript.slice(0, i + 1),
+            startIndex: i,
+            endIndex: i
+          }, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 60000
+          });
+          
+          // Check if we got a valid response with chapter analysis
+          if (response.data.chapterAnalyses && response.data.chapterAnalyses.length > 0) {
+            const newAnalysis = response.data.chapterAnalyses[0];
+            
+            // Important: Update state immediately for this single chapter
+            setChapterAnalyses(prev => {
+              const updated = [...prev];
+              updated[i] = {
+                ...newAnalysis,
+                chapterIndex: i // Ensure correct index
+              };
+              return updated;
+            });
+            
+            // Update status to completed for this chapter
+            setChapterAnalysisStatus(prev => ({
+              ...prev,
+              [i]: 'completed'
+            }));
+            
+            console.log(`Chapter ${i} analysis completed and state updated`);
+          }
+        } catch (chapterError) {
+          console.error(`Error analyzing chapter ${i}:`, chapterError);
+          
+          // Mark just this chapter as failed
+          setChapterAnalysisStatus(prev => ({
+            ...prev,
+            [i]: 'failed'
+          }));
+        }
+      }
       
-      console.log('Batch analysis response:', response.data);
-      return response.data.chapterAnalyses;
-      
+      // Return null since we've been updating state incrementally
+      return null;
     } catch (error) {
       console.error('Error generating analyses - Full error:', error);
       console.error('Error response:', error.response);
@@ -236,57 +291,24 @@ function App() {
 
   // Function to process all chapters in batches
   const processAllChaptersInBatches = async (startFromIndex = 0) => {
-    // If already processing or no data to process, exit immediately
     if (processingBatch || !rawChapterizedTranscript.length) return;
-
-    // Set processing flag to prevent concurrent processing
+  
     setProcessingBatch(true);
-    
-    const allAnalyses = new Array(rawChapterizedTranscript.length).fill(null);
-    const updatedStatus = { ...chapterAnalysisStatus };
+    setGeneratingAnalyses(true);
     
     try {
-      let i = startFromIndex;
+      // Use a smaller batch size for faster incremental updates
+      const SMALLER_BATCH_SIZE = 2;
       
-      // Only process if there are more chapters to process
-      if (i <= rawChapterizedTranscript.length - 1 && i > lastAnalyzedChapter) {
-        for (; i < rawChapterizedTranscript.length; i += BATCH_SIZE) {
-          const batchEndIndex = Math.min(i + BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
-          console.log(`Starting batch from ${i} to ${batchEndIndex}`);
-          
-          for (let j = i; j <= batchEndIndex; j++) {
-            updatedStatus[j] = 'pending';
-          }
-          setChapterAnalysisStatus(updatedStatus);
-          
-          const batchAnalyses = await generateBatchAnalyses(i, batchEndIndex);
-          
-          if (batchAnalyses) {
-            batchAnalyses.forEach(analysis => {
-              if (analysis && typeof analysis.chapterIndex === 'number') {
-                allAnalyses[analysis.chapterIndex] = analysis;
-                updatedStatus[analysis.chapterIndex] = 'completed';
-              }
-            });
-          }
-        }
+      for (let i = startFromIndex; i < rawChapterizedTranscript.length; i += SMALLER_BATCH_SIZE) {
+        const batchEndIndex = Math.min(i + SMALLER_BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
+        console.log(`Starting batch from ${i} to ${batchEndIndex}`);
         
-        // Only update state if we have new analyses
-        if (i > startFromIndex) {
-          setChapterAnalyses(prevAnalyses => {
-            // Merge new analyses with existing ones
-            const mergedAnalyses = [...prevAnalyses];
-            allAnalyses.forEach((analysis, idx) => {
-              if (analysis !== null) {
-                mergedAnalyses[idx] = analysis;
-              }
-            });
-            return mergedAnalyses;
-          });
-          
-          setChapterAnalysisStatus(updatedStatus);
-          setLastAnalyzedChapter(rawChapterizedTranscript.length - 1);
-        }
+        // This call will now update state incrementally for each chapter
+        await generateBatchAnalyses(i, batchEndIndex);
+        
+        // Update the last analyzed chapter
+        setLastAnalyzedChapter(batchEndIndex);
       }
     } catch (error) {
       console.error('Error processing batches:', error);

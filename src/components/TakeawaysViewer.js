@@ -55,66 +55,95 @@ const formatText = (text) => {
 
   // Render the content based on active tab
   const renderTabContent = () => {
-    const analysis = getCurrentChapterAnalysis();
+    const analysis = chapterAnalyses[activeChapter];
+    const status = chapterAnalysisStatus[activeChapter];
     
-    if (!analysis) {
-      if (generatingAnalyses || chapterAnalysisStatus[activeChapter] === 'pending') {
-        return (
-          <div className="generating-analysis">
-            <div className="spinner"></div>
-            <p>Generating insights...</p>
-            <p className="analysis-note">This might take a moment.</p>
-          </div>
-        );
+    // IMPROVED: If we have analysis for this chapter, show it immediately
+    // regardless of if other chapters are still being processed
+    if (analysis && status === 'completed') {
+      switch (activeTab) {
+        case 'recap':
+          return (
+            <div className="tab-content recap-content">
+              <div className="content-section">
+                {formatText(analysis.summary)}
+              </div>
+            </div>
+          );
+        case 'ideas':
+          return (
+            <div className="tab-content ideas-content">
+              <div className="content-section">
+                {analysis.takeaways.trim().startsWith('•') || analysis.takeaways.trim().startsWith('-') ? (
+                  <ul className="takeaways-list">
+                    {formatText(analysis.takeaways)}
+                  </ul>
+                ) : (
+                  <div className="takeaways-paragraphs">
+                    {formatText(analysis.takeaways)}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        case 'quotes':
+          return (
+            <div className="tab-content quotes-content">
+              <div className="content-section">
+                {formatText(analysis.quotes)}
+              </div>
+            </div>
+          );
+        default:
+          return null;
       }
-  
-      if (chapterAnalysisStatus[activeChapter] === 'failed') {
-        return (
-          <div className="analysis-failed">
-            <p>Failed to generate insights for this chapter. Please try again later.</p>
-          </div>
-        );
-      }
-  
-      return <p>No analysis available for this chapter.</p>;
     }
-
-    switch (activeTab) {
-      case 'recap':
-        return (
-          <div className="tab-content recap-content">
-            <div className="content-section">
-              {formatText(analysis.summary)}
-            </div>
-          </div>
-        );
-      case 'ideas':
-        return (
-          <div className="tab-content ideas-content">
-            <div className="content-section">
-              {analysis.takeaways.trim().startsWith('•') || analysis.takeaways.trim().startsWith('-') ? (
-                <ul className="takeaways-list">
-                  {formatText(analysis.takeaways)}
-                </ul>
-              ) : (
-                <div className="takeaways-paragraphs">
-                  {formatText(analysis.takeaways)}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      case 'quotes':
-        return (
-          <div className="tab-content quotes-content">
-            <div className="content-section">
-              {formatText(analysis.quotes)}
-            </div>
-          </div>
-        );
-      default:
-        return null;
+  
+    // Handle different states with better feedback
+    if (status === 'pending' || generatingAnalyses) {
+      // Count how many chapters have been analyzed
+      const completedCount = Object.values(chapterAnalysisStatus)
+        .filter(s => s === 'completed')
+        .length;
+      const totalCount = rawChapterizedTranscript.length;
+      
+      // Show progress information
+      return (
+        <div className="generating-analysis">
+          <div className="spinner"></div>
+          <p>Generating insights for Chapter {activeChapter + 1}...</p>
+          <p className="analysis-note">
+            {completedCount > 0 ? `${completedCount} of ${totalCount} chapters analyzed.` : 'Processing chapters...'}
+          </p>
+          {completedCount > 0 && (
+            <p className="analysis-suggestion">
+              While waiting, you can view insights for completed chapters.
+            </p>
+          )}
+        </div>
+      );
     }
+  
+    if (status === 'failed') {
+      return (
+        <div className="analysis-failed">
+          <p>Failed to generate insights for this chapter.</p>
+          <button 
+            onClick={() => onChapterClick(activeChapter)} 
+            className="retry-button"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    
+    // Default: No analysis yet
+    return (
+      <div className="empty-analysis">
+        <p>No analysis available for this chapter yet.</p>
+      </div>
+    );
   };
 
   // Handle copy to clipboard
@@ -157,16 +186,18 @@ const formatText = (text) => {
       <div className="chapters-sidebar">
         <div className="chapters-header">CHAPTERS</div>
         <div className="chapters-list">
-          {rawChapterizedTranscript.map((chapter, index) => (
-            <button 
-              key={index}
-              className={`chapter-button ${activeChapter === index ? 'active' : ''}`}
-              onClick={() => onChapterClick(index)}
-            >
-              {chapter.time && <span className="chapter-time">{chapter.time}</span>}
-              <span className="chapter-title">{chapter.title}</span>
-            </button>
-          ))}
+        {rawChapterizedTranscript.map((chapter, index) => (
+  <button 
+    key={index}
+    className={`chapter-button ${activeChapter === index ? 'active' : ''} ${
+      chapterAnalysisStatus[index] ? `status-${chapterAnalysisStatus[index]}` : ''
+    }`}
+    onClick={() => onChapterClick(index)}
+  >
+    {chapter.time && <span className="chapter-time">{chapter.time}</span>}
+    <span className="chapter-title">{chapter.title}</span>
+  </button>
+))}
         </div>
       </div>
       
