@@ -2082,7 +2082,7 @@ small {
 
 /* Make video title slightly larger too for better proportion */
 .video-title {
-  font-size: var(--text-3xl); /* Increased from text-2xl */
+  font-size: var(--text-2xl); /* Increased from text-2xl */
   margin-bottom: 18px; /* Increased space between title and metadata */
 }
 
@@ -2098,5 +2098,57 @@ small {
   
   .video-title {
     font-size: var(--text-2xl); /* Smaller on mobile */
+  }
+}
+
+/* Disable hover effects on mobile devices */
+@media (max-width: 768px) {
+  /* Main navigation buttons */
+  .button-container button:hover:not(:disabled):not(.active) {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--neutral-200);
+  }
+  
+  .button-container button.active:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+  
+  /* Tab buttons */
+  .tab-button:not(.active):hover {
+    color: var(--neutral-600);
+  }
+  
+  /* Copy buttons */
+  .copy-button:hover:not(:disabled) {
+    background-color: var(--neutral-50);
+    border-color: var(--neutral-200);
+    color: var(--neutral-700);
+  }
+  
+  /* Try Again button */
+  .error-retry-button:hover {
+    background-color: white;
+    border-color: #FCA5A5;
+  }
+  
+  /* Search button */
+  .search-input button:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Any other buttons with hover effects */
+  .description-toggle:hover {
+    text-decoration: none;
+    color: var(--primary-color);
+  }
+  
+  /* Disable all transform animations on mobile */
+  button:hover, 
+  .button:hover,
+  a:hover {
+    transform: none !important;
   }
 }
