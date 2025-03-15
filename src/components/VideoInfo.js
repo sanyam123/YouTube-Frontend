@@ -23,29 +23,42 @@ function VideoInfo({ videoDetails }) {
         </div>
         <div className="video-details">
           <h2 className="video-title">{videoDetails.title}</h2>
-          <p className="channel-name">
-            <strong>Channel:</strong> {videoDetails.channelTitle}
-          </p>
-          {videoDetails.publishedAt && (
-            <p className="publish-date">
-              <strong>Published:</strong> {formatDate(videoDetails.publishedAt)}
-            </p>
-          )}
-          {videoDetails.viewCount && (
-            <p className="view-count">
-              <strong>Views:</strong> {parseInt(videoDetails.viewCount).toLocaleString()}
-            </p>
-          )}
-          {videoDetails.likeCount && (
-            <p className="like-count">
-              <strong>Likes:</strong> {parseInt(videoDetails.likeCount).toLocaleString()}
-            </p>
-          )}
-          {videoDetails.duration && (
-            <p className="duration">
-              <strong>Duration:</strong> {videoDetails.duration}
-            </p>
-          )}
+          
+          <div className="video-metadata">
+            <div className="metadata-column">
+              {videoDetails.channelTitle && (
+                <p className="channel-name">
+                  <strong>Channel:</strong> {videoDetails.channelTitle}
+                </p>
+              )}
+              
+              {videoDetails.publishedAt && (
+                <p className="publish-date">
+                  <strong>Published:</strong> {formatDate(videoDetails.publishedAt)}
+                </p>
+              )}
+            </div>
+            
+            <div className="metadata-column">
+              {videoDetails.viewCount && (
+                <p className="view-count">
+                  <strong>Views:</strong> {parseInt(videoDetails.viewCount).toLocaleString()}
+                </p>
+              )}
+              
+              {videoDetails.likeCount && (
+                <p className="like-count">
+                  <strong>Likes:</strong> {parseInt(videoDetails.likeCount).toLocaleString()}
+                </p>
+              )}
+              
+              {videoDetails.duration && (
+                <p className="duration">
+                  <strong>Duration:</strong> {videoDetails.duration}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

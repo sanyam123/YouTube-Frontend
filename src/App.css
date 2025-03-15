@@ -1587,3 +1587,116 @@ small {
     margin: 0 auto; /* Center the thumbnail */
   }
 }
+
+/* Updated Video Info Container Styling */
+.video-info-container {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 20px 0;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid var(--neutral-200);
+}
+
+.video-info-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.video-thumbnail {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.thumbnail-img:hover {
+  transform: scale(1.02);
+}
+
+.video-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-title {
+  font-family: var(--font-headings);
+  font-size: var(--text-2xl);
+  color: var(--neutral-900);
+  margin-bottom: 16px;
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* New metadata layout for desktop */
+.video-metadata {
+  display: flex;
+  gap: 40px;
+}
+
+.metadata-column {
+  flex: 1;
+}
+
+.channel-name, .publish-date, .view-count, .like-count, .duration {
+  margin: 0 0 8px 0;
+  color: var(--neutral-700);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.channel-name {
+  font-size: var(--text-base);
+}
+
+.channel-name strong, .publish-date strong, .view-count strong, .like-count strong, .duration strong {
+  color: var(--neutral-900);
+  margin-right: 5px;
+  font-weight: var(--font-medium);
+}
+
+/* Preserve existing mobile layout */
+@media (max-width: 768px) {
+  .video-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .video-thumbnail {
+    max-width: 100%;
+    margin-bottom: 16px;
+  }
+  
+  .video-metadata {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .video-title {
+    font-size: var(--text-xl);
+    margin-bottom: 12px;
+  }
+  
+  .channel-name, .publish-date, .view-count, .like-count, .duration {
+    margin: 6px 0;
+  }
+}
+
+/* Additional adjustments for very small screens */
+@media (max-width: 480px) {
+  .video-info-container {
+    padding: 16px;
+  }
+}

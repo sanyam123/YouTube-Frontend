@@ -7,7 +7,7 @@ const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <p>© {currentYear} YouTube Smart Insights Tool. All rights reserved.</p>
+        <p>© {currentYear} YouTube Smart Insights. Built for Learners, Powered by GenAI.</p>
       </div>
     </footer>
   );

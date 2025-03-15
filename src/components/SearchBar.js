@@ -8,11 +8,11 @@ function SearchBar({ videoUrl, setVideoUrl, onSearch }) {
 
   return (
     <div className="search-bar">
-      <h2>Enter YouTube Video URL</h2>
+      <h2>Enter a Video URL</h2>
       <form onSubmit={handleSubmit} className="search-input">
         <input
           type="text"
-          placeholder="Paste YouTube video URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+          placeholder="Paste the URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
         />

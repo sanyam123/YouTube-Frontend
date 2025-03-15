@@ -7,8 +7,8 @@ function HowItWorks() {
       <div className="steps-container">
         <div className="step-item">
           <div className="step-icon">1</div>
-          <h3>Copy the YouTube URL</h3>
-          <p>Copy the URL from the address bar of your web browser</p>
+          <h3>Find a YouTube Video</h3>
+          <p>Open YouTube and copy the video link</p>
         </div>
         
         <div className="step-arrow">
@@ -19,8 +19,8 @@ function HowItWorks() {
         
         <div className="step-item">
           <div className="step-icon">2</div>
-          <h3>Paste the URL above</h3>
-          <p>Paste URL in the box and hit <strong>"Search Video"</strong></p>
+          <h3>Paste & Analyze</h3>
+          <p>Drop the link above and click <strong>"Search Video"</strong></p>
         </div>
         
         <div className="step-arrow">
@@ -32,7 +32,7 @@ function HowItWorks() {
         <div className="step-item">
           <div className="step-icon">3</div>
           <h3>Get Smart Insights</h3>
-          <p>Instantly access transcript, summaries & key takeaways</p>
+          <p>Instantly access   transcripts, summaries & key takeaways</p>
         </div>
       </div>
     </div>
