@@ -1976,3 +1976,127 @@ small {
   border-bottom: 2px solid var(--primary-color);
   font-weight: var(--font-semibold);
 }
+
+/* Fixed button states with proper active+hover handling */
+.button-container button {
+  flex: 1;
+  padding: 14px 0;
+  background-color: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+  color: var(--neutral-700);
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+
+/* Hover state for non-active buttons only */
+.button-container button:hover:not(:disabled):not(.active) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  border-color: var(--primary-light);
+}
+
+/* Active/selected state */
+.button-container button.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  font-weight: var(--font-semibold);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Hover state for active buttons - preserves the active styling */
+.button-container button.active:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Pressed state */
+.button-container button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+/* Disabled state */
+.button-container button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Tab navigation button states */
+.tab-button {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  color: var(--neutral-600);
+  transition: all 0.2s;
+  font-weight: var(--font-medium);
+}
+
+/* Tab hover - only for non-active tabs */
+.tab-button:not(.active):hover {
+  color: var(--primary-color);
+}
+
+/* Tab active state */
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+  font-weight: var(--font-semibold);
+}
+
+/* Tab active+hover state - preserves active styling */
+.tab-button.active:hover {
+  color: var(--primary-color);
+}
+
+/* Increased font size for metadata items */
+.channel-name, .publish-date, .view-count, .like-count, .duration {
+  margin: 0 0 10px 0; /* Slightly more vertical spacing */
+  color: var(--neutral-700);
+  font-size: var(--text-base); /* Increased from text-sm */
+  line-height: var(--leading-normal);
+}
+
+.channel-name {
+  font-size: var(--text-lg); /* Increased from text-base */
+}
+
+.channel-name strong, .publish-date strong, .view-count strong, .like-count strong, .duration strong {
+  color: var(--neutral-900);
+  margin-right: 5px;
+  font-weight: var(--font-medium);
+}
+
+/* Make video title slightly larger too for better proportion */
+.video-title {
+  font-size: var(--text-3xl); /* Increased from text-2xl */
+  margin-bottom: 18px; /* Increased space between title and metadata */
+}
+
+/* Adjust responsive behavior */
+@media (max-width: 768px) {
+  .channel-name, .publish-date, .view-count, .like-count, .duration {
+    font-size: var(--text-sm); /* Smaller on mobile but still readable */
+  }
+  
+  .channel-name {
+    font-size: var(--text-base); /* Smaller on mobile but still prominent */
+  }
+  
+  .video-title {
+    font-size: var(--text-2xl); /* Smaller on mobile */
+  }
+}
