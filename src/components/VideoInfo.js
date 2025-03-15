@@ -52,11 +52,7 @@ function VideoInfo({ videoDetails }) {
                 </p>
               )}
               
-              {videoDetails.duration && (
-                <p className="duration">
-                  <strong>Duration:</strong> {videoDetails.duration}
-                </p>
-              )}
+              {/* Duration removed as requested */}
             </div>
           </div>
         </div>

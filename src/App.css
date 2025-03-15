@@ -1700,3 +1700,207 @@ small {
     padding: 16px;
   }
 }
+
+/* Improved button contrast for main navigation tabs */
+.button-container button.active {
+  background-color: var(--primary-color);
+  color: white; /* Keep this white */
+  border-color: var(--primary-color);
+  font-weight: var(--font-bold); /* Make font bolder for better visibility */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add shadow for better depth */
+}
+
+/* Tab button styling - Ensure text is visible when active */
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom: 3px solid var(--primary-color); /* Thicker underline */
+  font-weight: var(--font-bold);
+}
+
+/* Improve visibility of active tab text */
+.tabs-navigation .tab-button.active {
+  color: var(--primary-dark); /* Darker color for better visibility */
+}
+
+/* Improved hover states for better UX */
+.button-container button:hover:not(:disabled),
+.tab-button:hover {
+  background-color: var(--neutral-100);
+  color: var(--primary-dark);
+}
+
+/* Updated Video Info Container Styling */
+.video-info-container {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 20px 0;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid var(--neutral-200);
+}
+
+.video-info-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.video-thumbnail {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.thumbnail-img:hover {
+  transform: scale(1.02);
+}
+
+.video-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-title {
+  font-family: var(--font-headings);
+  font-size: var(--text-2xl);
+  color: var(--neutral-900);
+  margin-bottom: 16px;
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* New metadata layout for desktop */
+.video-metadata {
+  display: flex;
+  gap: 40px;
+}
+
+.metadata-column {
+  flex: 1;
+}
+
+.channel-name, .publish-date, .view-count, .like-count, .duration {
+  margin: 0 0 8px 0;
+  color: var(--neutral-700);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.channel-name {
+  font-size: var(--text-base);
+}
+
+.channel-name strong, .publish-date strong, .view-count strong, .like-count strong, .duration strong {
+  color: var(--neutral-900);
+  margin-right: 5px;
+  font-weight: var(--font-medium);
+}
+
+/* Preserve existing mobile layout */
+@media (max-width: 768px) {
+  .video-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .video-thumbnail {
+    max-width: 100%;
+    margin-bottom: 16px;
+  }
+  
+  .video-metadata {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .video-title {
+    font-size: var(--text-xl);
+    margin-bottom: 12px;
+  }
+  
+  .channel-name, .publish-date, .view-count, .like-count, .duration {
+    margin: 6px 0;
+  }
+}
+
+/* Clear error message styling */
+.error-message-container {
+  background-color: #FEF2F2; /* Light red background */
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border: 1px solid #FECACA; /* Subtle red border */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Remove gradient border */
+.error-message-container::before {
+  display: none;
+}
+
+.error-message-icon {
+  flex-shrink: 0;
+  color: #DC2626; /* Red icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-message-content {
+  flex-grow: 1;
+}
+
+.error-message-content h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-headings);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  color: #B91C1C; /* Darker red for heading */
+}
+
+.error-message-content p {
+  margin: 0 0 4px;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: #991B1B; /* Dark red for text */
+}
+
+.error-suggestion {
+  font-size: var(--text-sm);
+  color: #7F1D1D; /* Deeper red for suggestion */
+  font-style: italic;
+  margin-top: 6px;
+}
+
+/* Secondary button style that doesn't compete with primary CTA */
+.error-retry-button {
+  background-color: white;
+  color: #DC2626; /* Red text */
+  border: 1px solid #FECACA; /* Light red border */
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.error-retry-button:hover {
+  background-color: #FEF2F2; /* Subtle hover effect */
+  border-color: #DC2626; /* Darker border on hover */
+}

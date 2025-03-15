@@ -9,6 +9,7 @@ import VideoInfo from './components/VideoInfo';
 import TakeawaysViewer from './components/TakeawaysViewer';
 import axios from 'axios';
 import HowItWorks from './components/HowItWorks';
+import ErrorMessage from './components/ErrorMessage';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -919,10 +920,11 @@ function App() {
         />
         
         {error && (
-          <div className="error-message">
-            <p>{error}</p>
-          </div>
-        )}
+  <ErrorMessage 
+    error={error} 
+    onRetry={() => videoUrl ? fetchTranscript() : null} 
+  />
+)}
         
         {loading ? (
           <LoadingSpinner />

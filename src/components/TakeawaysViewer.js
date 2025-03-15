@@ -17,19 +17,30 @@ function TakeawaysViewer({
   }
 
   // Format the analysis text into paragraphs
-  const formatText = (text) => {
-    if (!text) return null;
-    
-    return text
-      .split('\n')
-      .filter(line => line.trim() !== '')
-      .map((line, index) => {
-        if (line.trim().match(/^[-•*]|\d+\./)) {
-          return <li key={index}>{line.replace(/^[-•*]|\d+\./, '').trim()}</li>;
-        }
-        return <p key={index}>{line}</p>;
-      });
-  };
+// Improved formatText function to clean up unnecessary symbols
+const formatText = (text) => {
+  if (!text) return null;
+  
+  // First clean up the text by removing unwanted symbols
+  let cleanedText = text
+    .replace(/#+\s*$/gm, '') // Remove hash symbols at the end of lines
+    .replace(/^\s*\*\s*/gm, '') // Remove asterisks at the beginning of lines
+    .replace(/\*{2,}/g, '') // Remove multiple asterisks
+    .replace(/_{3,}/g, '') // Remove multiple underscores
+    .trim();
+  
+  // Then format and return the cleaned text
+  return cleanedText
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map((line, index) => {
+      if (line.trim().match(/^[-•*]|\d+\./)) {
+        // Format bullet points properly
+        return <li key={index}>{line.replace(/^[-•*]|\d+\./, '').trim()}</li>;
+      }
+      return <p key={index}>{line}</p>;
+    });
+};
 
   // Get current chapter analysis
   const getCurrentChapterAnalysis = () => {
