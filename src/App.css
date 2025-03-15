@@ -2152,3 +2152,27 @@ small {
     transform: none !important;
   }
 }
+/* Disable both hover and active state animations on mobile */
+@media (max-width: 768px) {
+  /* Existing hover state disabling code */
+  
+  /* Disable active state effects */
+  .button-container button:active:not(:disabled),
+  .tab-button:active,
+  .copy-button:active:not(:disabled),
+  .error-retry-button:active,
+  .search-input button:active,
+  .description-toggle:active,
+  button:active, 
+  .button:active,
+  a:active {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Remove all transition animations for buttons on mobile */
+  button, .button, a {
+    transition: color 0.2s, background-color 0.2s !important;
+    transform: none !important;
+  }
+}
