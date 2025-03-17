@@ -110,6 +110,56 @@ function App() {
     });
   }, []); // Empty dependency array to run only once
 
+  const triggerRagWebhook = async (videoId) => {
+    if (!videoId) {
+      console.error('No video ID available to trigger webhook');
+      return;
+    }
+    
+    try {
+      console.log('Triggering RAG webhook for video ID:', videoId);
+      
+      // Track webhook call attempt in Google Analytics
+      ReactGA.event({
+        category: "RAG",
+        action: "Webhook Trigger",
+        label: videoId
+      });
+      
+      // Call the webhook with the video ID as a query parameter
+      const webhookUrl = 'https://ssinghal.app.n8n.cloud/webhook-test/59a3b75b-93f3-43d1-bb19-1c83aaf9323f';
+      const response = await fetch(`${webhookUrl}?videoId=${videoId}`, {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Webhook responded with status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('Webhook response:', responseData);
+      
+      // Track webhook success in Google Analytics
+      ReactGA.event({
+        category: "RAG",
+        action: "Webhook Success",
+        label: videoId
+      });
+      
+      return responseData;
+    } catch (error) {
+      console.error('Error triggering RAG webhook:', error);
+      
+      // Track webhook error in Google Analytics
+      ReactGA.event({
+        category: "Error",
+        action: "Webhook Failure",
+        label: `${videoId}: ${error.message}`
+      });
+      
+      return null;
+    }
+  };
   // Test backend connection
   const testBackendConnection = async () => {
     try {
@@ -1097,7 +1147,12 @@ function App() {
       action: "Search",
       label: videoUrl
     });
-    
+    const videoId = extractVideoId(videoUrl);
+  
+  // Call webhook if we have a valid video ID
+  if (videoId) {
+    triggerRagWebhook(videoId);
+  }
     fetchTranscriptWithUrl(videoUrl);
   };
 
