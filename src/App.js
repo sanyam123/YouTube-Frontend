@@ -128,7 +128,7 @@ function App() {
     }
   };
 
-  // Function to enhance specific chapters
+  // Function to enhance specific chapters - UPDATED
   const enhanceChapters = async (chaptersToEnhance) => {
     // If no chapters to enhance, return immediately
     if (!chaptersToEnhance || chaptersToEnhance.length === 0) {
@@ -138,10 +138,9 @@ function App() {
     try {
       const updatedStatus = { ...chapterEnhancementStatus };
       
-      // Skip chapters that are already completed or being enhanced
+      // Skip chapters that are already completed
       const chaptersToProcess = chaptersToEnhance.filter(chapter => 
-        updatedStatus[chapter.index] !== 'completed' && 
-        updatedStatus[chapter.index] !== 'enhancing'
+        updatedStatus[chapter.index] !== 'completed'
       );
       
       // If no chapters need processing, return immediately
@@ -149,8 +148,11 @@ function App() {
         return true;
       }
       
+      // Mark them as enhancing (if not already)
       chaptersToProcess.forEach(chapter => {
-        updatedStatus[chapter.index] = 'enhancing';
+        if (updatedStatus[chapter.index] !== 'enhancing') {
+          updatedStatus[chapter.index] = 'enhancing';
+        }
       });
       setChapterEnhancementStatus(updatedStatus);
       
@@ -319,7 +321,7 @@ function App() {
   };
 
   // Effect to handle initial enhancement and start batch processing for videos with and without chapters
-  // UPDATED: Fixed this effect to prevent infinite loops
+  // UPDATED: Decoupled enhancement from analysis
   useEffect(() => {
     // Skip if data hasn't been fetched yet or if processing has already been initiated
     if (!dataFetched || !videoDetails || processingInitiated) return;
@@ -332,28 +334,32 @@ function App() {
       
       if (hasChapters) {
         // Process videos with chapters
-        if (rawChapterizedTranscript.length > 0 && !enhancingTranscript) {
-          setEnhancingTranscript(true);
-          
+        if (rawChapterizedTranscript.length > 0) {
           try {
-            const chaptersToEnhance = rawChapterizedTranscript
-              .slice(0, Math.min(2, rawChapterizedTranscript.length))
-              .map((chapter, index) => ({ chapter, index }));
-            
-            if (chaptersToEnhance.length > 0) {
-              await Promise.all([
-                enhanceChapters(chaptersToEnhance),
-                processAllChaptersInBatches(0)
-              ]);
+            // Step 1: Start enhancing the first 2 chapters immediately
+            if (!enhancingTranscript) {
+              setEnhancingTranscript(true);
+              const chaptersToEnhance = rawChapterizedTranscript
+                .slice(0, Math.min(2, rawChapterizedTranscript.length))
+                .map((chapter, index) => ({ chapter, index }));
+              
+              if (chaptersToEnhance.length > 0) {
+                // Only wait for enhancement of initial chapters
+                await enhanceChapters(chaptersToEnhance);
+                setEnhancingTranscript(false);
+              }
             }
+            
+            // Step 2: Start analysis process separately (don't await it)
+            processAllChaptersInBatches(0);
+            
           } catch (error) {
             console.error('Error processing initial chapters:', error);
-          } finally {
             setEnhancingTranscript(false);
           }
         }
       } else {
-        // Process videos without chapters
+        // Processing for non-chaptered videos remains the same
         if (
           !processingNoChapterTranscript && 
           !noChapterProcessingInitiated.current && 
@@ -378,7 +384,6 @@ function App() {
     
     processVideo();
   }, [dataFetched, videoDetails, hasChapters, rawChapterizedTranscript.length, videoUrl]);
-  // IMPORTANT: Removed enhancingTranscript from dependency array to prevent loops
 
   // NEW: Function to split transcript into chunks for non-chaptered videos
   const splitTranscriptIntoChunks = (transcriptData) => {
@@ -603,7 +608,7 @@ function App() {
     }
   };
 
-  // Handle chapter click with transcript enhancement
+  // Handle chapter click with transcript enhancement - UPDATED
   const handleChapterClick = async (index) => {
     setActiveChapter(index);
     
@@ -613,17 +618,25 @@ function App() {
       index >= 0 && 
       index < rawChapterizedTranscript.length && 
       chapterEnhancementStatus[index] !== 'completed' && 
-      chapterEnhancementStatus[index] !== 'enhancing' &&
-      !enhancingTranscript // Add this check to prevent concurrent enhancement
+      chapterEnhancementStatus[index] !== 'enhancing'
     ) {
-      setEnhancingTranscript(true); // Set flag before starting enhancement
+      // Set local enhancement status immediately to prevent double processing
+      const updatedStatus = { ...chapterEnhancementStatus };
+      updatedStatus[index] = 'enhancing';
+      setChapterEnhancementStatus(updatedStatus);
+      
       try {
+        // Process this chapter independently from the batch processing
         await enhanceChapters([{ 
           chapter: rawChapterizedTranscript[index], 
           index 
         }]);
-      } finally {
-        setEnhancingTranscript(false); // Clear flag when done
+      } catch (error) {
+        console.error(`Error enhancing chapter ${index}:`, error);
+        // Reset status on error
+        const failedStatus = { ...chapterEnhancementStatus };
+        failedStatus[index] = 'failed';
+        setChapterEnhancementStatus(failedStatus);
       }
     }
   };
@@ -764,7 +777,6 @@ function App() {
           // Process chapters as before
           setRawChapterizedTranscript(data.organizedTranscript);
           setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
-          
           const initialStatus = {};
           data.organizedTranscript.forEach((_, index) => {
             initialStatus[index] = 'pending';
@@ -942,11 +954,11 @@ function App() {
         />
         
         {error && (
-  <ErrorMessage 
-    error={error} 
-    onRetry={() => videoUrl ? fetchTranscript() : null} 
-  />
-)}
+          <ErrorMessage 
+            error={error} 
+            onRetry={() => videoUrl ? fetchTranscript() : null} 
+          />
+        )}
         
         {loading ? (
           <LoadingSpinner />
