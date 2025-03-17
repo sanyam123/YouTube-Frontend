@@ -890,51 +890,119 @@ function App() {
   };
 
   // Component for displaying non-chaptered analysis
-  const NoChapterAnalysisViewer = ({ analysis, loading }) => {
-    if (loading) {
-      return (
-        <div className="loading-container">
-          <LoadingSpinner />
-          <p>Fetching Smart Insights...</p>
-        </div>
-      );
-    }
-    
-    if (!analysis.summary && !analysis.takeaways) {
-      return (
-        <div className="empty-state">
-          <p>Analysis will appear here as it's processed.</p>
-        </div>
-      );
-    }
-    
+  // Updated Component for displaying non-chaptered analysis
+const NoChapterAnalysisViewer = ({ analysis, loading }) => {
+  if (loading) {
     return (
-      <div className="no-chapter-analysis">
-        {analysis.summary && (
-          <div className="summary-section">
-            <h3>Summary</h3>
-            {analysis.summary.split('\n\n').map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        )}
-        
-        {analysis.takeaways && (
-          <div className="takeaways-section">
-            <h3>Key Takeaways</h3>
-            <div dangerouslySetInnerHTML={{ __html: analysis.takeaways.replace(/\n/g, '<br/>') }} />
-          </div>
-        )}
-        
-        {analysis.quotes && (
-          <div className="quotes-section">
-            <h3>Notable Quotes</h3>
-            <div dangerouslySetInnerHTML={{ __html: analysis.quotes.replace(/\n/g, '<br/>') }} />
-          </div>
-        )}
+      <div className="loading-container">
+        <LoadingSpinner />
+        <p>Fetching Smart Insights...</p>
       </div>
     );
+  }
+  
+  if (!analysis.summary && !analysis.takeaways) {
+    return (
+      <div className="empty-state">
+        <p>Analysis will appear here as it's processed.</p>
+      </div>
+    );
+  }
+  
+  // Function to format and clean text content
+  const formatText = (text) => {
+    if (!text) return null;
+    
+    // Clean up the text by removing unwanted symbols
+    let cleanedText = text
+      .replace(/#+\s*$/gm, '') // Remove hash symbols at the end of lines
+      .replace(/###/g, '') // Remove all ### markers
+      .replace(/^\s*-\s*/gm, '') // Remove leading dashes with spaces
+      .replace(/\*{2,}/g, '') // Remove multiple asterisks
+      .replace(/_{3,}/g, '') // Remove multiple underscores
+      .trim();
+    
+    // Split into paragraphs and map to JSX elements
+    return cleanedText
+      .split('\n\n')
+      .filter(paragraph => paragraph.trim() !== '')
+      .map((paragraph, index) => {
+        // Check if this appears to be a list item from formatting
+        if (paragraph.trim().match(/^[-•*]|\d+\./)) {
+          // For list items, return as a list item
+          return <li key={index}>{paragraph.replace(/^[-•*]|\d+\./, '').trim()}</li>;
+        }
+        
+        // Regular paragraph
+        return <p key={index}>{paragraph}</p>;
+      });
   };
+  
+  // Function to properly format takeaways as a list
+  const formatTakeaways = (takeaways) => {
+    if (!takeaways) return null;
+    
+    // Clean up the content
+    const cleanedContent = takeaways
+      .replace(/#+\s*$/gm, '')  // Remove hash symbols at the end of lines
+      .replace(/###/g, '')      // Remove all ### markers
+      .trim();
+    
+    // Split into lines
+    const lines = cleanedContent.split('\n')
+      .filter(line => line.trim() !== '');
+    
+    // Check if content appears to be a list
+    const isList = lines.some(line => line.trim().match(/^\s*[-•*]/));
+    
+    if (isList) {
+      // Format as a bulleted list
+      return (
+        <ul className="takeaways-list">
+          {lines.map((line, index) => {
+            // Remove the bullet point if present and trim
+            const cleanLine = line.replace(/^\s*[-•*]\s*/, '').trim();
+            return <li key={index}>{cleanLine}</li>;
+          })}
+        </ul>
+      );
+    } else {
+      // Format as paragraphs
+      return lines.map((line, index) => <p key={index}>{line}</p>);
+    }
+  };
+  
+  return (
+    <div className="no-chapter-analysis">
+      {analysis.summary && (
+        <div className="summary-section">
+          <h3>Summary</h3>
+          <div className="summary-content">
+            {formatText(analysis.summary)}
+          </div>
+        </div>
+      )}
+      
+      {analysis.takeaways && (
+        <div className="takeaways-section">
+          <h3>Key Takeaways</h3>
+          <div className="takeaways-content">
+            {formatTakeaways(analysis.takeaways)}
+          </div>
+        </div>
+      )}
+      
+      {analysis.quotes && (
+        <div className="quotes-section">
+          <h3>Notable Quotes</h3>
+          <div className="quotes-content">
+            {formatText(analysis.quotes)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
   return (
     <div className="App app-container">
