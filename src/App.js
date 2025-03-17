@@ -10,6 +10,7 @@ import TakeawaysViewer from './components/TakeawaysViewer';
 import axios from 'axios';
 import HowItWorks from './components/HowItWorks';
 import ErrorMessage from './components/ErrorMessage';
+import ReactGA from "react-ga4";
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -64,6 +65,16 @@ function App() {
   const BATCH_SIZE = 3;
   const CHUNK_SIZE_MINUTES = 10; // Size of chunks for non-chaptered videos in minutes
 
+  // Track initial page view
+  useEffect(() => {
+    // Send initial pageview on app load
+    ReactGA.send({ 
+      hitType: "pageview", 
+      page: window.location.pathname,
+      title: "YouTube Smart Insights"
+    });
+  }, []);
+
   // Extract video ID from URL - helper function
   const extractVideoId = (url) => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -82,6 +93,13 @@ function App() {
         const fullYoutubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         setVideoUrl(fullYoutubeUrl);
         fetchTranscriptWithUrl(fullYoutubeUrl);
+        
+        // Track video loaded from URL parameter
+        ReactGA.event({
+          category: "Video",
+          action: "Load From URL Parameter",
+          label: fullYoutubeUrl
+        });
       }
     };
     
@@ -104,6 +122,14 @@ function App() {
         const errorText = await rootResponse.text();
         console.error('Root endpoint error:', errorText);
         setConnectionStatus(`Connection error: ${rootResponse.status} - ${errorText}`);
+        
+        // Track connection error
+        ReactGA.event({
+          category: "Error",
+          action: "Backend Connection",
+          label: `${rootResponse.status}: ${errorText}`
+        });
+        
         return false;
       }
       
@@ -117,6 +143,13 @@ function App() {
         }
       } catch (corsError) {
         console.warn('CORS test failed, but continuing:', corsError);
+        
+        // Track CORS error
+        ReactGA.event({
+          category: "Error",
+          action: "CORS Test",
+          label: corsError.message
+        });
       }
       
       setConnectionStatus('Connection to backend successful');
@@ -124,6 +157,14 @@ function App() {
     } catch (error) {
       console.error('Backend connection error:', error);
       setConnectionStatus(`Failed to connect to backend: ${error.message}`);
+      
+      // Track connection error
+      ReactGA.event({
+        category: "Error",
+        action: "Backend Connection",
+        label: error.message
+      });
+      
       return false;
     }
   };
@@ -147,6 +188,13 @@ function App() {
       if (chaptersToProcess.length === 0) {
         return true;
       }
+      
+      // Track enhancement start
+      ReactGA.event({
+        category: "Processing",
+        action: "Enhance Chapters",
+        label: `Started enhancing ${chaptersToProcess.length} chapters`
+      });
       
       // Mark them as enhancing (if not already)
       chaptersToProcess.forEach(chapter => {
@@ -193,10 +241,24 @@ function App() {
       setEnhancedChapterizedTranscript(newEnhancedChapters);
       setChapterEnhancementStatus(updatedStatus);
       
+      // Track enhancement success
+      ReactGA.event({
+        category: "Processing",
+        action: "Enhance Chapters",
+        label: `Successfully enhanced ${data.enhancedChapters.length} chapters`
+      });
+      
       return true;
     } catch (error) {
       console.error('Error enhancing chapters - Full error:', error);
       console.error('Error response:', error.response);
+      
+      // Track enhancement error
+      ReactGA.event({
+        category: "Error",
+        action: "Enhancement Error",
+        label: `Failed to enhance chapters: ${error.message || 'Unknown error'}`
+      });
       
       const updatedStatus = { ...chapterEnhancementStatus };
       chaptersToEnhance.forEach(chapter => {
@@ -214,6 +276,13 @@ function App() {
       setGeneratingAnalyses(true);
       
       console.log(`Processing batch - Start: ${startIndex}, End: ${endIndex}`);
+      
+      // Track analysis batch start
+      ReactGA.event({
+        category: "Processing",
+        action: "Generate Analyses",
+        label: `Started batch ${startIndex}-${endIndex}`
+      });
       
       // Process chapters in sequence to maintain context
       for (let i = startIndex; i <= endIndex; i++) {
@@ -270,9 +339,23 @@ function App() {
             }));
             
             console.log(`Chapter ${i} analysis completed and state updated`);
+            
+            // Track single chapter analysis success
+            ReactGA.event({
+              category: "Processing",
+              action: "Chapter Analysis",
+              label: `Completed: ${chapter.title || `Chapter ${i+1}`}`
+            });
           }
         } catch (chapterError) {
           console.error(`Error analyzing chapter ${i}:`, chapterError);
+          
+          // Track chapter analysis error
+          ReactGA.event({
+            category: "Error",
+            action: "Chapter Analysis",
+            label: `Failed: ${chapter.title || `Chapter ${i+1}`} - ${chapterError.message || 'Unknown error'}`
+          });
           
           // Mark just this chapter as failed
           setChapterAnalysisStatus(prev => ({
@@ -287,6 +370,14 @@ function App() {
     } catch (error) {
       console.error('Error generating analyses - Full error:', error);
       console.error('Error response:', error.response);
+      
+      // Track batch analysis error
+      ReactGA.event({
+        category: "Error",
+        action: "Batch Analysis",
+        label: `Failed batch ${startIndex}-${endIndex}: ${error.message || 'Unknown error'}`
+      });
+      
       return null;
     }
   };
@@ -302,6 +393,13 @@ function App() {
       // Use a smaller batch size for faster incremental updates
       const SMALLER_BATCH_SIZE = 2;
       
+      // Track batch processing start
+      ReactGA.event({
+        category: "Processing",
+        action: "Process All Chapters",
+        label: `Started processing ${rawChapterizedTranscript.length} chapters from index ${startFromIndex}`
+      });
+      
       for (let i = startFromIndex; i < rawChapterizedTranscript.length; i += SMALLER_BATCH_SIZE) {
         const batchEndIndex = Math.min(i + SMALLER_BATCH_SIZE - 1, rawChapterizedTranscript.length - 1);
         console.log(`Starting batch from ${i} to ${batchEndIndex}`);
@@ -312,8 +410,22 @@ function App() {
         // Update the last analyzed chapter
         setLastAnalyzedChapter(batchEndIndex);
       }
+      
+      // Track batch processing completion
+      ReactGA.event({
+        category: "Processing",
+        action: "Process All Chapters",
+        label: `Completed processing all chapters`
+      });
     } catch (error) {
       console.error('Error processing batches:', error);
+      
+      // Track batch processing error
+      ReactGA.event({
+        category: "Error",
+        action: "Process All Chapters",
+        label: `Failed: ${error.message || 'Unknown error'}`
+      });
     } finally {
       setProcessingBatch(false);
       setGeneratingAnalyses(false);
@@ -336,6 +448,13 @@ function App() {
         // Process videos with chapters
         if (rawChapterizedTranscript.length > 0) {
           try {
+            // Track processing start
+            ReactGA.event({
+              category: "Processing",
+              action: "Start Processing",
+              label: `Chaptered Video: ${videoDetails.title || videoId}`
+            });
+            
             // Step 1: Start enhancing the first 2 chapters immediately
             if (!enhancingTranscript) {
               setEnhancingTranscript(true);
@@ -356,6 +475,13 @@ function App() {
           } catch (error) {
             console.error('Error processing initial chapters:', error);
             setEnhancingTranscript(false);
+            
+            // Track processing error
+            ReactGA.event({
+              category: "Error",
+              action: "Initial Processing",
+              label: `Failed: ${error.message || 'Unknown error'}`
+            });
           }
         }
       } else {
@@ -367,6 +493,13 @@ function App() {
           videoDetails?.transcriptData?.length > 0
         ) {
           console.log('Starting to process video without chapters');
+          
+          // Track non-chaptered processing start
+          ReactGA.event({
+            category: "Processing",
+            action: "Start Processing",
+            label: `Non-Chaptered Video: ${videoDetails.title || videoId}`
+          });
           
           // Mark processing as initiated
           noChapterProcessingInitiated.current = true;
@@ -453,6 +586,14 @@ function App() {
     }
     
     console.log(`Split transcript into ${chunks.length} chunks`);
+    
+    // Track chunk creation
+    ReactGA.event({
+      category: "Processing",
+      action: "Split Transcript",
+      label: `Created ${chunks.length} chunks`
+    });
+    
     return chunks;
   };
 
@@ -460,6 +601,13 @@ function App() {
   const processTranscriptChunk = async (chunk, previousContext) => {
     try {
       console.log(`Processing transcript chunk ${chunk.index}`);
+      
+      // Track chunk processing start
+      ReactGA.event({
+        category: "Processing",
+        action: "Process Chunk",
+        label: `Started chunk ${chunk.index}`
+      });
       
       const response = await axios.post(`${backendUrl}/api/process-transcript-chunk`, {
         transcriptChunk: chunk.content,
@@ -471,9 +619,25 @@ function App() {
       });
       
       console.log(`Chunk ${chunk.index} processed successfully`);
+      
+      // Track chunk processing success
+      ReactGA.event({
+        category: "Processing",
+        action: "Process Chunk",
+        label: `Completed chunk ${chunk.index}`
+      });
+      
       return response.data;
     } catch (error) {
       console.error(`Error processing chunk ${chunk.index}:`, error);
+      
+      // Track chunk processing error
+      ReactGA.event({
+        category: "Error",
+        action: "Process Chunk",
+        label: `Failed chunk ${chunk.index}: ${error.message || 'Unknown error'}`
+      });
+      
       return null;
     }
   };
@@ -523,6 +687,14 @@ function App() {
       // SAFEGUARD 10: Check for valid chunks before continuing
       if (chunks.length === 0) {
         console.error('Failed to split transcript into chunks');
+        
+        // Track chunking failure
+        ReactGA.event({
+          category: "Error",
+          action: "Split Transcript",
+          label: "Failed to create chunks"
+        });
+        
         return;
       }
       
@@ -599,8 +771,22 @@ function App() {
       
       console.log('Finished processing all transcript chunks');
       
+      // Track completion of non-chaptered processing
+      ReactGA.event({
+        category: "Processing",
+        action: "Non-Chaptered Processing",
+        label: `Completed processing ${chunks.length} chunks`
+      });
+      
     } catch (error) {
       console.error('Error processing non-chaptered transcript:', error);
+      
+      // Track error
+      ReactGA.event({
+        category: "Error",
+        action: "Non-Chaptered Processing",
+        label: `Failed: ${error.message || 'Unknown error'}`
+      });
     } finally {
       setProcessingNoChapterTranscript(false);
       setLoadingNoChapterTranscript(false);
@@ -610,6 +796,15 @@ function App() {
 
   // Handle chapter click with transcript enhancement - UPDATED
   const handleChapterClick = async (index) => {
+    // Track chapter selection
+    if (rawChapterizedTranscript[index]?.title) {
+      ReactGA.event({
+        category: "Navigation",
+        action: "Select Chapter",
+        label: rawChapterizedTranscript[index].title
+      });
+    }
+    
     setActiveChapter(index);
     
     // If this chapter hasn't been enhanced yet and isn't currently being enhanced
@@ -691,6 +886,13 @@ function App() {
       console.log('Fetching transcript for URL:', url);
       console.log('Using backend URL:', `${backendUrl}/api/video-data`);
       
+      // Track transcript fetch attempt
+      ReactGA.event({
+        category: "Video",
+        action: "Fetch Transcript",
+        label: url
+      });
+      
       try {
         // Try using Axios first
         const response = await axios.get(`${backendUrl}/api/video-data`, {
@@ -703,6 +905,104 @@ function App() {
         console.log('Fetch transcript response data:', response.data);
         
         const data = response.data;
+        
+        // Track successful transcript fetch
+        ReactGA.event({
+          category: "Video",
+          action: "Fetch Success",
+          label: `${data.videoDetails?.title || 'Unknown title'}`
+        });
+        
+        // Set has chapters flag
+        setHasChapters(data.hasChapters);
+        
+        setVideoDetails(data.videoDetails);
+        setTranscript(data.transcript);
+        
+        // Store the full transcript data for non-chaptered processing
+        if (data.transcriptData) {
+          // Ensure videoDetails includes transcriptData for non-chaptered processing
+          setVideoDetails(prev => ({
+            ...prev,
+            transcriptData: data.transcriptData
+          }));
+        }
+        
+        if (data.hasChapters) {
+          // Process chapters as before
+          setRawChapterizedTranscript(data.organizedTranscript);
+          setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
+          
+          const initialStatus = {};
+          data.organizedTranscript.forEach((_, index) => {
+            initialStatus[index] = 'pending';
+          });
+          setChapterEnhancementStatus(initialStatus);
+          
+          // Track chapter count
+          ReactGA.event({
+            category: "Content",
+            action: "Chapters Detected",
+            label: `${data.organizedTranscript.length} chapters`
+          });
+        } else {
+          // For non-chaptered videos, set empty chapter arrays
+          setRawChapterizedTranscript([]);
+          setEnhancedChapterizedTranscript([]);
+          
+          // Track non-chaptered content
+          ReactGA.event({
+            category: "Content",
+            action: "No Chapters",
+            label: data.videoDetails?.title || url
+          });
+        }
+        
+        // Set language information
+        setTranscriptLanguage(data.transcriptLanguage || 'en');
+        setTranscriptLanguageName(data.transcriptLanguageName || 'English');
+        setIsAutoGenerated(data.isAutoGenerated || false);
+        setRequiresTranslation(data.requiresTranslation || false);
+        
+        // Track transcript language
+        if (data.transcriptLanguage) {
+          ReactGA.event({
+            category: "Content",
+            action: "Transcript Language",
+            label: `${data.transcriptLanguageName || data.transcriptLanguage}`
+          });
+        }
+        
+        setDataFetched(true);
+      } catch (axiosError) {
+        console.error('Axios request failed - Falling back to fetch', axiosError);
+        
+        // Track axios failure
+        ReactGA.event({
+          category: "Error",
+          action: "Axios Request Failed",
+          label: axiosError.message
+        });
+        
+        // Fallback to fetch if axios fails
+        const fetchResponse = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(url)}`);
+        console.log('Fetch API response status:', fetchResponse.status);
+        
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text();
+          console.error('Fetch API error text:', errorText);
+          throw new Error(errorText || 'Failed to fetch video data');
+        }
+        
+        const data = await fetchResponse.json();
+        console.log('Fetch API response data:', data);
+        
+        // Track successful fallback fetch
+        ReactGA.event({
+          category: "Video",
+          action: "Fallback Fetch Success",
+          label: `${data.videoDetails?.title || 'Unknown title'}`
+        });
         
         // Set has chapters flag
         setHasChapters(data.hasChapters);
@@ -742,74 +1042,42 @@ function App() {
         setRequiresTranslation(data.requiresTranslation || false);
         
         setDataFetched(true);
-      } catch (axiosError) {
-        console.error('Axios request failed - Falling back to fetch', axiosError);
-        
-        // Fallback to fetch if axios fails
-        const fetchResponse = await fetch(`${backendUrl}/api/video-data?url=${encodeURIComponent(url)}`);
-        console.log('Fetch API response status:', fetchResponse.status);
-        
-        if (!fetchResponse.ok) {
-          const errorText = await fetchResponse.text();
-          console.error('Fetch API error text:', errorText);
-          throw new Error(errorText || 'Failed to fetch video data');
-        }
-        
-        const data = await fetchResponse.json();
-        console.log('Fetch API response data:', data);
-        
-        // Set has chapters flag
-        setHasChapters(data.hasChapters);
-        
-        setVideoDetails(data.videoDetails);
-        setTranscript(data.transcript);
-        
-        // Store the full transcript data for non-chaptered processing
-        if (data.transcriptData) {
-          // Ensure videoDetails includes transcriptData for non-chaptered processing
-          setVideoDetails(prev => ({
-            ...prev,
-            transcriptData: data.transcriptData
-          }));
-        }
-        
-        if (data.hasChapters) {
-          // Process chapters as before
-          setRawChapterizedTranscript(data.organizedTranscript);
-          setEnhancedChapterizedTranscript(data.organizedTranscript.map(() => null));
-          const initialStatus = {};
-          data.organizedTranscript.forEach((_, index) => {
-            initialStatus[index] = 'pending';
-          });
-          setChapterEnhancementStatus(initialStatus);
-        } else {
-          // For non-chaptered videos, set empty chapter arrays
-          setRawChapterizedTranscript([]);
-          setEnhancedChapterizedTranscript([]);
-        }
-        
-        // Set language information
-        setTranscriptLanguage(data.transcriptLanguage || 'en');
-        setTranscriptLanguageName(data.transcriptLanguageName || 'English');
-        setIsAutoGenerated(data.isAutoGenerated || false);
-        setRequiresTranslation(data.requiresTranslation || false);
-        
-        setDataFetched(true);
       }
     } catch (err) {
       console.error('Error fetching transcript - Full error:', err);
+      
+      // Track errors in Google Analytics
       if (err.response) {
         console.error('Error response data:', err.response.data);
         console.error('Error response status:', err.response.status);
         console.error('Error response headers:', err.response.headers);
         setError(err.response.data?.message || 'An error occurred while fetching the video data');
+        
+        ReactGA.event({
+          category: "Error",
+          action: "API Error",
+          label: `${err.response.status}: ${err.response.data?.message || 'Unknown error'}`
+        });
       } else if (err.request) {
         console.error('Error request (no response received):', err.request);
         setError('No response received from server. Please check your connection.');
+        
+        ReactGA.event({
+          category: "Error",
+          action: "Network Error",
+          label: "No response received"
+        });
       } else {
         console.error('Error message:', err.message);
         setError(err.message || 'An error occurred while fetching the video data');
+        
+        ReactGA.event({
+          category: "Error",
+          action: "Client Error",
+          label: err.message || 'Unknown error'
+        });
       }
+      
       setVideoDetails(null);
       setDataFetched(false);
       
@@ -823,6 +1091,13 @@ function App() {
 
   // Main function to fetch transcript (uses the helper function)
   const fetchTranscript = () => {
+    // Track video search event
+    ReactGA.event({
+      category: "Video",
+      action: "Search",
+      label: videoUrl
+    });
+    
     fetchTranscriptWithUrl(videoUrl);
   };
 
@@ -836,6 +1111,13 @@ function App() {
       setLoading(true);
       setError('');
       
+      // Track analysis request
+      ReactGA.event({
+        category: "Analysis",
+        action: "Request Worth Watching",
+        label: videoDetails?.title || 'Unknown video'
+      });
+      
       const response = await axios.post(`${backendUrl}/api/analyze`, 
         { transcript },
         {
@@ -848,8 +1130,23 @@ function App() {
       
       setWorthWatching(response.data.analysis);
       setActiveTab('analysis');
+      
+      // Track successful analysis
+      ReactGA.event({
+        category: "Analysis",
+        action: "Worth Watching Success",
+        label: videoDetails?.title || 'Unknown video'
+      });
     } catch (err) {
       console.error('Error analyzing - Full error:', err);
+      
+      // Track analysis error
+      ReactGA.event({
+        category: "Error",
+        action: "Worth Watching Analysis",
+        label: err.message || 'Unknown error'
+      });
+      
       if (err.response) {
         console.error('Error response data:', err.response.data);
         setError(err.response.data?.message || 'An error occurred while analyzing the video');
@@ -889,240 +1186,275 @@ function App() {
     );
   };
 
-  // Component for displaying non-chaptered analysis
   // Updated Component for displaying non-chaptered analysis
-const NoChapterAnalysisViewer = ({ analysis, loading }) => {
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <LoadingSpinner />
-        <p>Fetching Smart Insights...</p>
-      </div>
-    );
-  }
-  
-  if (!analysis.summary && !analysis.takeaways) {
-    return (
-      <div className="empty-state">
-        <p>Analysis will appear here as it's processed.</p>
-      </div>
-    );
-  }
-  
-  // Function to format and clean text content
-  const formatText = (text) => {
-    if (!text) return null;
-    
-    // Clean up the text by removing unwanted symbols
-    let cleanedText = text
-      .replace(/#+\s*$/gm, '') // Remove hash symbols at the end of lines
-      .replace(/###/g, '') // Remove all ### markers
-      .replace(/^\s*-\s*/gm, '') // Remove leading dashes with spaces
-      .replace(/\*{2,}/g, '') // Remove multiple asterisks
-      .replace(/_{3,}/g, '') // Remove multiple underscores
-      .trim();
-    
-    // Split into paragraphs and map to JSX elements
-    return cleanedText
-      .split('\n\n')
-      .filter(paragraph => paragraph.trim() !== '')
-      .map((paragraph, index) => {
-        // Check if this appears to be a list item from formatting
-        if (paragraph.trim().match(/^[-•*]|\d+\./)) {
-          // For list items, return as a list item
-          return <li key={index}>{paragraph.replace(/^[-•*]|\d+\./, '').trim()}</li>;
-        }
-        
-        // Regular paragraph
-        return <p key={index}>{paragraph}</p>;
-      });
-  };
-  
-  // Function to properly format takeaways as a list
-  const formatTakeaways = (takeaways) => {
-    if (!takeaways) return null;
-    
-    // Clean up the content
-    const cleanedContent = takeaways
-      .replace(/#+\s*$/gm, '')  // Remove hash symbols at the end of lines
-      .replace(/###/g, '')      // Remove all ### markers
-      .trim();
-    
-    // Split into lines
-    const lines = cleanedContent.split('\n')
-      .filter(line => line.trim() !== '');
-    
-    // Check if content appears to be a list
-    const isList = lines.some(line => line.trim().match(/^\s*[-•*]/));
-    
-    if (isList) {
-      // Format as a bulleted list
+  const NoChapterAnalysisViewer = ({ analysis, loading }) => {
+    if (loading) {
       return (
-        <ul className="takeaways-list">
-          {lines.map((line, index) => {
-            // Remove the bullet point if present and trim
-            const cleanLine = line.replace(/^\s*[-•*]\s*/, '').trim();
-            return <li key={index}>{cleanLine}</li>;
-          })}
-        </ul>
+        <div className="loading-container">
+          <LoadingSpinner />
+          <p>Fetching Smart Insights...</p>
+        </div>
       );
-    } else {
-      // Format as paragraphs
-      return lines.map((line, index) => <p key={index}>{line}</p>);
     }
+    
+    if (!analysis.summary && !analysis.takeaways) {
+      return (
+        <div className="empty-state">
+          <p>Analysis will appear here as it's processed.</p>
+        </div>
+      );
+    }
+    
+    // Function to format and clean text content
+    const formatText = (text) => {
+      if (!text) return null;
+      
+      // Clean up the text by removing unwanted symbols
+      let cleanedText = text
+        .replace(/#+\s*$/gm, '') // Remove hash symbols at the end of lines
+        .replace(/###/g, '') // Remove all ### markers
+        .replace(/^\s*-\s*/gm, '') // Remove leading dashes with spaces
+        .replace(/\*{2,}/g, '') // Remove multiple asterisks
+        .replace(/_{3,}/g, '') // Remove multiple underscores
+        .trim();
+      
+      // Split into paragraphs and map to JSX elements
+      return cleanedText
+        .split('\n\n')
+        .filter(paragraph => paragraph.trim() !== '')
+        .map((paragraph, index) => {
+          // Check if this appears to be a list item from formatting
+          if (paragraph.trim().match(/^[-•*]|\d+\./)) {
+            // For list items, return as a list item
+            return <li key={index}>{paragraph.replace(/^[-•*]|\d+\./, '').trim()}</li>;
+          }
+          
+          // Regular paragraph
+          return <p key={index}>{paragraph}</p>;
+        });
+    };
+    
+    // Function to properly format takeaways as a list
+    const formatTakeaways = (takeaways) => {
+      if (!takeaways) return null;
+      
+      // Clean up the content
+      const cleanedContent = takeaways
+        .replace(/#+\s*$/gm, '')  // Remove hash symbols at the end of lines
+        .replace(/###/g, '')      // Remove all ### markers
+        .trim();
+      
+      // Split into lines
+      const lines = cleanedContent.split('\n')
+        .filter(line => line.trim() !== '');
+      
+      // Check if content appears to be a list
+      const isList = lines.some(line => line.trim().match(/^\s*[-•*]/));
+      
+      if (isList) {
+        // Format as a bulleted list
+        return (
+          <ul className="takeaways-list">
+            {lines.map((line, index) => {
+              // Remove the bullet point if present and trim
+              const cleanLine = line.replace(/^\s*[-•*]\s*/, '').trim();
+              return <li key={index}>{cleanLine}</li>;
+            })}
+          </ul>
+        );
+      } else {
+        // Format as paragraphs
+        return lines.map((line, index) => <p key={index}>{line}</p>);
+      }
+    };
+    
+    return (
+      <div className="no-chapter-analysis">
+        {analysis.summary && (
+          <div className="summary-section">
+            <h3>Summary</h3>
+            <div className="summary-content">
+              {formatText(analysis.summary)}
+            </div>
+          </div>
+        )}
+        
+        {analysis.takeaways && (
+          <div className="takeaways-section">
+            <h3>Key Takeaways</h3>
+            <div className="takeaways-content">
+              {formatTakeaways(analysis.takeaways)}
+            </div>
+          </div>
+        )}
+        
+        {analysis.quotes && (
+          <div className="quotes-section">
+            <h3>Notable Quotes</h3>
+            <div className="quotes-content">
+              {formatText(analysis.quotes)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
-  
+
   return (
-    <div className="no-chapter-analysis">
-      {analysis.summary && (
-        <div className="summary-section">
-          <h3>Summary</h3>
-          <div className="summary-content">
-            {formatText(analysis.summary)}
-          </div>
-        </div>
-      )}
+    <div className="App app-container">
+      <Header className="app-header" />
       
-      {analysis.takeaways && (
-        <div className="takeaways-section">
-          <h3>Key Takeaways</h3>
-          <div className="takeaways-content">
-            {formatTakeaways(analysis.takeaways)}
+      <main className="container-wide app-main">
+        {/* {connectionStatus && (
+          <div className={`connection-status ${connectionStatus.includes('error') || connectionStatus.includes('failed') ? 'error' : 'success'}`}>
+            {connectionStatus}
           </div>
-        </div>
-      )}
+        )} */}
+        
+        <SearchBar 
+          videoUrl={videoUrl} 
+          setVideoUrl={setVideoUrl} 
+          onSearch={fetchTranscript} 
+        />
+        
+        {error && (
+          <ErrorMessage 
+            error={error} 
+            onRetry={() => videoUrl ? fetchTranscript() : null} 
+          />
+        )}
+        
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <>
+            {videoDetails && <VideoInfo videoDetails={videoDetails} />}
+            {!dataFetched && !loading && <HowItWorks />}
+            
+            {/* Both notification components removed */}
+            
+            {dataFetched && (
+              <>
+                <div className="button-container tab-container">
+                  <button 
+                    onClick={() => {
+                      setActiveTab('transcript');
+                      ReactGA.event({
+                        category: "Navigation",
+                        action: "Tab Change",
+                        label: "Transcript"
+                      });
+                      ReactGA.send({
+                        hitType: "pageview",
+                        page: "/app/transcript",
+                        title: "YouTube Smart Insights - Transcript"
+                      });
+                    }}
+                    className={activeTab === 'transcript' ? 'active' : ''}
+                  >
+                    Enhanced Transcript
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('takeaways');
+                      ReactGA.event({
+                        category: "Navigation",
+                        action: "Tab Change",
+                        label: "Smart Insights"
+                      });
+                      ReactGA.send({
+                        hitType: "pageview",
+                        page: "/app/takeaways",
+                        title: "YouTube Smart Insights - Smart Insights"
+                      });
+                    }}
+                    className={activeTab === 'takeaways' ? 'active' : ''}
+                  >
+                    Smart Insights
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('analysis');
+                      ReactGA.event({
+                        category: "Navigation",
+                        action: "Tab Change",
+                        label: "Worth Watching"
+                      });
+                      ReactGA.send({
+                        hitType: "pageview",
+                        page: "/app/analysis",
+                        title: "YouTube Smart Insights - Worth Watching"
+                      });
+                    }}
+                    className={activeTab === 'analysis' ? 'active' : ''}
+                    disabled={loading}
+                  >
+                    Worth Watching?
+                  </button>
+                </div>
+                
+                {activeTab && (
+                  <div className="content-container-wrapper">
+                    <div className="content-container">
+                      {activeTab === 'transcript' && hasChapters && (
+                        <TranscriptViewer 
+                          rawChapterizedTranscript={rawChapterizedTranscript}
+                          enhancedChapterizedTranscript={enhancedChapterizedTranscript} 
+                          chapterEnhancementStatus={chapterEnhancementStatus}
+                          activeChapter={activeChapter}
+                          onChapterClick={handleChapterClick}
+                          videoDetails={videoDetails}
+                        />
+                      )}
+                      
+                      {activeTab === 'transcript' && !hasChapters && (
+                        <NoChapterTranscriptViewer
+                          transcript={noChapterEnhancedTranscript}
+                          loading={loadingNoChapterTranscript}
+                        />
+                      )}
+                      
+                      {activeTab === 'takeaways' && hasChapters && (
+                        <TakeawaysViewer
+                          chapterAnalyses={chapterAnalyses}
+                          chapterAnalysisStatus={chapterAnalysisStatus}
+                          rawChapterizedTranscript={rawChapterizedTranscript}
+                          activeChapter={activeChapter}
+                          onChapterClick={handleChapterClick}
+                          generatingAnalyses={generatingAnalyses}
+                        />
+                      )}
+                      
+                      {activeTab === 'takeaways' && !hasChapters && (
+                        <NoChapterAnalysisViewer
+                          analysis={noChapterAnalysis}
+                          loading={loadingNoChapterAnalysis}
+                        />
+                      )}
+                      
+                      {activeTab === 'analysis' && (
+                        <div className="generating-analysis">
+                          <h3>
+                            Coming Soon!
+                          </h3>
+                          <p>
+                            We're working on an exciting new feature that will help you decide if a video is worth your time. 
+                            Stay tuned for the update!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </main>
       
-      {analysis.quotes && (
-        <div className="quotes-section">
-          <h3>Notable Quotes</h3>
-          <div className="quotes-content">
-            {formatText(analysis.quotes)}
-          </div>
-        </div>
-      )}
+      <Footer className="app-footer" />
     </div>
   );
-};
-
-return (
-  <div className="App app-container">
-    <Header className="app-header" />
-    
-    <main className="container-wide app-main">
-      {/* {connectionStatus && (
-        <div className={`connection-status ${connectionStatus.includes('error') || connectionStatus.includes('failed') ? 'error' : 'success'}`}>
-          {connectionStatus}
-        </div>
-      )} */}
-      
-      <SearchBar 
-        videoUrl={videoUrl} 
-        setVideoUrl={setVideoUrl} 
-        onSearch={fetchTranscript} 
-      />
-      
-      {error && (
-        <ErrorMessage 
-          error={error} 
-          onRetry={() => videoUrl ? fetchTranscript() : null} 
-        />
-      )}
-      
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <>
-          {videoDetails && <VideoInfo videoDetails={videoDetails} />}
-          {!dataFetched && !loading && <HowItWorks />}
-          
-          {/* Both notification components removed */}
-          
-          {dataFetched && (
-            <>
-              <div className="button-container tab-container">
-                <button 
-                  onClick={() => setActiveTab('transcript')}
-                  className={activeTab === 'transcript' ? 'active' : ''}
-                >
-                  Enhanced Transcript
-                </button>
-                <button 
-                  onClick={() => setActiveTab('takeaways')}
-                  className={activeTab === 'takeaways' ? 'active' : ''}
-                >
-                  Smart Insights
-                </button>
-                <button 
-                  onClick={() => setActiveTab('analysis')}
-                  className={activeTab === 'analysis' ? 'active' : ''}
-                  disabled={loading}
-                >
-                  Worth Watching?
-                </button>
-              </div>
-              
-              {activeTab && (
-                <div className="content-container-wrapper">
-                  <div className="content-container">
-                    {activeTab === 'transcript' && hasChapters && (
-                      <TranscriptViewer 
-                        rawChapterizedTranscript={rawChapterizedTranscript}
-                        enhancedChapterizedTranscript={enhancedChapterizedTranscript} 
-                        chapterEnhancementStatus={chapterEnhancementStatus}
-                        activeChapter={activeChapter}
-                        onChapterClick={handleChapterClick}
-                        videoDetails={videoDetails}
-                      />
-                    )}
-                    
-                    {activeTab === 'transcript' && !hasChapters && (
-                      <NoChapterTranscriptViewer
-                        transcript={noChapterEnhancedTranscript}
-                        loading={loadingNoChapterTranscript}
-                      />
-                    )}
-                    
-                    {activeTab === 'takeaways' && hasChapters && (
-                      <TakeawaysViewer
-                        chapterAnalyses={chapterAnalyses}
-                        chapterAnalysisStatus={chapterAnalysisStatus}
-                        rawChapterizedTranscript={rawChapterizedTranscript}
-                        activeChapter={activeChapter}
-                        onChapterClick={handleChapterClick}
-                        generatingAnalyses={generatingAnalyses}
-                      />
-                    )}
-                    
-                    {activeTab === 'takeaways' && !hasChapters && (
-                      <NoChapterAnalysisViewer
-                        analysis={noChapterAnalysis}
-                        loading={loadingNoChapterAnalysis}
-                      />
-                    )}
-                    
-                    {activeTab === 'analysis' && (
-                      <div className="generating-analysis">
-                        <h3>
-                          Coming Soon!
-                        </h3>
-                        <p>
-                          We're working on an exciting new feature that will help you decide if a video is worth your time. 
-                          Stay tuned for the update!
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </main>
-    
-    <Footer className="app-footer" />
-  </div>
-);
 }
 
 export default App;

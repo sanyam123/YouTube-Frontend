@@ -1,8 +1,17 @@
 import React from 'react';
+import ReactGA from "react-ga4";
 
 function SearchBar({ videoUrl, setVideoUrl, onSearch }) {
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Track URL input submission
+    ReactGA.event({
+      category: "Search",
+      action: "Submit URL",
+      label: videoUrl
+    });
+    
     onSearch();
   };
 

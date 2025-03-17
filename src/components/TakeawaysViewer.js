@@ -1,6 +1,7 @@
 // TakeawaysViewer.js
 import React, { useState } from 'react';
-
+// Add this import at the top of TakeawaysViewer.js
+import ReactGA from "react-ga4";
 function TakeawaysViewer({ 
   chapterAnalyses, 
   chapterAnalysisStatus, 
@@ -147,38 +148,53 @@ const formatText = (text) => {
   };
 
   // Handle copy to clipboard
-  const handleCopy = () => {
-    const analysis = getCurrentChapterAnalysis();
-    if (!analysis) return;
 
-    let textToCopy = '';
-    switch (activeTab) {
-      case 'recap':
-        textToCopy = analysis.summary;
-        break;
-      case 'ideas':
-        textToCopy = analysis.takeaways;
-        break;
-      case 'quotes':
-        textToCopy = analysis.quotes;
-        break;
-      default:
-        return;
+
+// Update the handleCopy function in TakeawaysViewer component
+const handleCopy = () => {
+  const analysis = getCurrentChapterAnalysis();
+  if (!analysis) return;
+
+  let textToCopy = '';
+  let contentType = '';
+  
+  switch (activeTab) {
+    case 'recap':
+      textToCopy = analysis.summary;
+      contentType = 'Summary';
+      break;
+    case 'ideas':
+      textToCopy = analysis.takeaways;
+      contentType = 'Takeaways';
+      break;
+    case 'quotes':
+      textToCopy = analysis.quotes;
+      contentType = 'Quotes';
+      break;
+    default:
+      return;
+  }
+
+  if (!textToCopy) return;
+
+  // Track the copy action with more specific data
+  ReactGA.event({
+    category: "Engagement",
+    action: "Copy Content",
+    label: `${contentType}: ${rawChapterizedTranscript[activeChapter]?.title || `Chapter ${activeChapter + 1}`}`
+  });
+
+  navigator.clipboard.writeText(textToCopy).then(
+    () => {
+      setCopyStatus({ [activeTab]: 'copied' });
+      setTimeout(() => setCopyStatus({}), 2000);
+    },
+    (err) => {
+      console.error('Could not copy text: ', err);
+      setCopyStatus({ [activeTab]: 'error' });
     }
-
-    if (!textToCopy) return;
-
-    navigator.clipboard.writeText(textToCopy).then(
-      () => {
-        setCopyStatus({ [activeTab]: 'copied' });
-        setTimeout(() => setCopyStatus({}), 2000);
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-        setCopyStatus({ [activeTab]: 'error' });
-      }
-    );
-  };
+  );
+};
 
   return (
     <div className="transcript-container">

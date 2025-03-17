@@ -1,6 +1,6 @@
 // TranscriptViewer.js
 import React, { useState } from 'react';
-
+import ReactGA from "react-ga4";
 function TranscriptViewer({ 
   rawChapterizedTranscript, 
   enhancedChapterizedTranscript,
@@ -86,35 +86,43 @@ function TranscriptViewer({
     return rawChapter.content;
   };
   
-  // Handle copy to clipboard
-  const handleCopy = () => {
-    const textToCopy = getChapterTextContent();
-    
-    if (!textToCopy) return;
-    
-    navigator.clipboard.writeText(textToCopy).then(
-      () => {
+
+// Update the handleCopy function in TranscriptViewer component
+const handleCopy = () => {
+  const textToCopy = getChapterTextContent();
+  
+  if (!textToCopy) return;
+  
+  // Track the copy action
+  ReactGA.event({
+    category: "Engagement",
+    action: "Copy Content",
+    label: `Transcript: ${rawChapterizedTranscript[activeChapter]?.title || `Chapter ${activeChapter + 1}`}`
+  });
+  
+  navigator.clipboard.writeText(textToCopy).then(
+    () => {
+      setCopyStatus({
+        ...copyStatus,
+        [activeChapter]: 'copied'
+      });
+      
+      setTimeout(() => {
         setCopyStatus({
           ...copyStatus,
-          [activeChapter]: 'copied'
+          [activeChapter]: null
         });
-        
-        setTimeout(() => {
-          setCopyStatus({
-            ...copyStatus,
-            [activeChapter]: null
-          });
-        }, 2000);
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-        setCopyStatus({
-          ...copyStatus,
-          [activeChapter]: 'error'
-        });
-      }
-    );
-  };
+      }, 2000);
+    },
+    (err) => {
+      console.error('Could not copy text: ', err);
+      setCopyStatus({
+        ...copyStatus,
+        [activeChapter]: 'error'
+      });
+    }
+  );
+};
 
   return (
     <div className="transcript-container">
