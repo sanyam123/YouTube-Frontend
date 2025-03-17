@@ -129,7 +129,7 @@ function App() {
       // Call the webhook with the video ID as a query parameter
       const webhookUrl = 'https://ssinghal.app.n8n.cloud/webhook-test/59a3b75b-93f3-43d1-bb19-1c83aaf9323f';
       const response = await fetch(`${webhookUrl}?videoId=${videoId}`, {
-        method: 'GET'
+        method: 'POST'
       });
       
       if (!response.ok) {
