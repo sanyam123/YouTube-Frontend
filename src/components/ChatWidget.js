@@ -68,14 +68,16 @@ const ChatWidget = ({ videoId }) => {
     
     try {
       // Send to n8n webhook
-      const response = await fetch('https://anjalie-ssinghal.app.n8n.cloud/webhook/f845e801-39f8-4d4f-b550-275fdef5ce75/chat', {
+      const response = await fetch('https://ssinghal.app.n8n.cloud/webhook-test/query-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           video_id: videoId,
-          chatInput: inputText
+          query: inputText,
+          // Add session ID for conversation tracking
+          // session_id: sessionId
         }),
       });
       
@@ -84,13 +86,15 @@ const ChatWidget = ({ videoId }) => {
       }
       
       const data = await response.json();
+      console.log("Response from webhook:", data); // Add this to debug
       
       // Remove loading message
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));
       
-      // Add bot response
+      // Add bot response - handle different possible response formats
       setMessages(prev => [...prev, { 
-        text: data.response || "I couldn't process your question.", 
+        text: data.response || data.output || data.answer || 
+              (typeof data === 'string' ? data : "I couldn't process your question."), 
         sender: 'bot' 
       }]);
     } catch (error) {
