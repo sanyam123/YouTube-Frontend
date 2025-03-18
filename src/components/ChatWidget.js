@@ -68,7 +68,7 @@ const ChatWidget = ({ videoId }) => {
     
     try {
       // Send to n8n webhook
-      const response = await fetch('https://ssinghal.app.n8n.cloud/webhook-test/query-video', {
+      const response = await fetch('https://anjalie-ssinghal.app.n8n.cloud/webhook/a4a087de-eb09-49e3-8ac7-65d22e7611e5/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
