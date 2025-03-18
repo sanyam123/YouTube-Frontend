@@ -11,6 +11,7 @@ import axios from 'axios';
 import HowItWorks from './components/HowItWorks';
 import ErrorMessage from './components/ErrorMessage';
 import ReactGA from "react-ga4";
+import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
   const [videoUrl, setVideoUrl] = useState('');
@@ -1508,6 +1509,13 @@ function App() {
       </main>
       
       <Footer className="app-footer" />
+      
+      {/* Add the ChatbotWidget component here */}
+      {videoDetails && (
+        <ChatbotWidget 
+          videoId={extractVideoId(videoUrl)} 
+        />
+      )}
     </div>
   );
 }
