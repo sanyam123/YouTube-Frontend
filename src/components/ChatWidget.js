@@ -75,7 +75,7 @@ const ChatWidget = ({ videoId }) => {
         },
         body: JSON.stringify({
           video_id: videoId,
-          query: inputText
+          chatInput: inputText
         }),
       });
       
